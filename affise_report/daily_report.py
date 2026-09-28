@@ -197,6 +197,77 @@ def kpi(label, value, sub=""):
             f'<div style="font-size:12px;margin-top:2px">{sub}</div></td>')
 
 
+def trend_chart(day, rows):
+    """Month-to-date income as an email-safe column chart plus weekly totals.
+
+    Built from tables and fixed-height divs (no SVG/JS) so it renders in Gmail
+    and Outlook. Hovering a column shows its figures via the title attribute.
+    """
+    by_date = {r["label"]: r for r in rows}
+    empty = {"income": 0.0, "profit": 0.0, "conversions": 0, "clicks": 0}
+    days = [day.replace(day=i) for i in range(1, day.day + 1)]
+    series = [(d, by_date.get(d.isoformat(), empty)) for d in days]
+    peak = max((r["income"] for _, r in series), default=0)
+    best = max(series, key=lambda x: x[1]["income"])
+    active = [r for _, r in series if r["income"] > 0]
+    avg = sum(r["income"] for r in active) / len(active) if active else 0
+    height = 150
+
+    cols, labels = "", ""
+    for d, r in series:
+        h = round(r["income"] / peak * height) if peak else 0
+        tip = html.escape(f'{d.strftime("%a %d %b")}: {money(r["income"])} income, '
+                          f'{money(r["profit"])} profit, {r["conversions"]} conv.', quote=True)
+        # Only yesterday and the best day carry a value label.
+        note = ""
+        if d in (day, best[0]) and r["income"] > 0:
+            note = (f'<div style="font-size:10px;font-weight:600;color:#111827;white-space:nowrap;'
+                    f'text-align:center;margin-bottom:2px">{r["income"]:,.0f}</div>')
+        if h > 0:
+            color = "#1e40af" if d == day else "#3b82f6"
+            bar = f'<div style="height:{max(h, 3)}px;background:{color};border-radius:4px 4px 0 0"></div>'
+        else:
+            bar = '<div style="height:2px;background:#e5e7eb"></div>'
+        cols += (f'<td title="{tip}" valign="bottom" style="padding:0 1px;vertical-align:bottom;'
+                 f'height:{height + 16}px">{note}{bar}</td>')
+        show = d.day == 1 or d.day % 5 == 0 or d == day
+        labels += (f'<td style="padding:4px 0 0;font-size:10px;color:#6b7280;text-align:center">'
+                   f'{d.day if show else ""}</td>')
+
+    weeks, weekly = [], {}
+    for d, r in series:
+        start = d - dt.timedelta(days=d.weekday())
+        if start not in weekly:
+            weekly[start] = {"days": [], "income": 0.0, "profit": 0.0, "conversions": 0}
+            weeks.append(start)
+        w = weekly[start]
+        w["days"].append(d)
+        w["income"] += r["income"]
+        w["profit"] += r["profit"]
+        w["conversions"] += r["conversions"]
+    cell = 'padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right'
+    week_rows = ""
+    for start in weeks:
+        w = weekly[start]
+        span = f'{w["days"][0].strftime("%d %b")} – {w["days"][-1].strftime("%d %b")}'
+        week_rows += (f'<tr><td style="{cell};text-align:left">{span}</td>'
+                      f'<td style="{cell}">{w["conversions"]:,}</td>'
+                      f'<td style="{cell}">{money(w["income"])}</td>'
+                      f'<td style="{cell}">{money(w["profit"])}</td></tr>')
+    th = 'padding:6px 8px;border-bottom:2px solid #e5e7eb;text-align:right;font-weight:600'
+
+    return f"""<h2 style="font-size:16px;margin:28px 0 2px">Month-to-date daily income</h2>
+<p style="font-size:12px;color:#6b7280;margin:0 0 12px">Best day {best[0].strftime("%d %b")} ({money(best[1]["income"])})
+· Average {money(avg)} across {len(active)} earning days · Darker bar = yesterday</p>
+<table style="width:100%;border-collapse:collapse;table-layout:fixed">
+<tr>{cols}</tr><tr style="border-top:1px solid #d1d5db">{labels}</tr></table>
+<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:16px">
+<thead><tr><th style="{th};text-align:left">Week</th><th style="{th}">Conv.</th>
+<th style="{th}">Income</th><th style="{th}">Profit</th></tr></thead>
+<tbody>{week_rows}</tbody></table>"""
+
+
+
 def render_html(day, data, demo=False):
     t = summarise(data["day_by_affiliate"])
     p = summarise(data["prev_by_affiliate"])
@@ -204,13 +275,7 @@ def render_html(day, data, demo=False):
     days_in_month = ((day.replace(day=28) + dt.timedelta(days=4)).replace(day=1) - dt.timedelta(days=1)).day
     forecast = m["income"] / day.day * days_in_month if day.day else 0
 
-    trend = ""
-    peak = max((r["income"] for r in data["mtd_by_day"]), default=0) or 1
-    for r in sorted(data["mtd_by_day"], key=lambda r: r["label"]):
-        w = r["income"] / peak * 100
-        trend += (f'<tr><td style="padding:3px 8px;font-size:12px;color:#6b7280;white-space:nowrap">{html.escape(r["label"])}</td>'
-                  f'<td style="width:100%"><div style="background:#2563eb;height:12px;width:{w:.1f}%;border-radius:3px"></div></td>'
-                  f'<td style="padding:3px 8px;font-size:12px;text-align:right;white-space:nowrap">{money(r["income"])}</td></tr>')
+    trend = trend_chart(day, data["mtd_by_day"])
 
     banner = ('<p style="background:#fef3c7;padding:8px 12px;border-radius:6px;font-size:13px">'
               "Sample data — not real Affise figures.</p>") if demo else ""
@@ -233,8 +298,7 @@ def render_html(day, data, demo=False):
 </tr></table>
 {table("Revenue by publisher — yesterday", data["day_by_affiliate"], "Publisher")}
 {table("Revenue by offer — yesterday", data["day_by_offer"], "Offer")}
-<h2 style="font-size:16px;margin:28px 0 8px">Month-to-date daily income</h2>
-<table style="width:100%;border-collapse:collapse">{trend}</table>
+{trend}
 <p style="font-size:11px;color:#9ca3af;margin-top:28px">Income = amount networks pay us (Affise "charge"). Payout = publisher share
 (Affise "revenue"). Profit = Income − Payout. Includes pending conversions, which may still be declined by the network.</p>
 </body></html>"""
