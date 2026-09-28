@@ -46,13 +46,14 @@ def fetch_stats(slice_by, date_from, date_to):
             "slice[]": [slice_by],
             "filter[date_from]": date_from.isoformat(),
             "filter[date_to]": date_to.isoformat(),
-            "filter[currency]": CURRENCY,
             "page": page,
             "limit": 500,
         })
         rows.extend(data.get("stats", []))
         pagination = data.get("pagination") or {}
-        if not pagination.get("next_page"):
+        total = int(num(pagination.get("total_count")))
+        per_page = int(num(pagination.get("per_page"))) or 1
+        if not data.get("stats") or page * per_page >= total:
             return rows
         page += 1
 
@@ -119,6 +120,10 @@ def collect(day):
         "mtd_by_day": (month_start, day, "day"),
     }.items():
         data[key] = [normalise(r, slice_by) for r in fetch_stats(slice_by, a, b)]
+    for r in data["mtd_by_day"]:
+        # The day slice comes back as a bare day-of-month number.
+        if r["label"].isdigit():
+            r["label"] = month_start.replace(day=int(r["label"])).isoformat()
     return data
 
 

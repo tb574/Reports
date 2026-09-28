@@ -31,5 +31,5 @@ https://docs.google.com/spreadsheets/d/1yjxHAwj67rh7drNGWTEy-0CePcgt6Bpi3sKXbpHJ
 | Env var | Default |
 |---|---|
 | `AFFISE_API_URL` | `https://api-nyjltb.affise.com` |
-| `REPORT_CURRENCY` | `USD` |
+| `REPORT_CURRENCY` | `USD` (display label only; Affise returns totals in the account currency) |
 | `REPORT_OUT_DIR` | `./output` |
