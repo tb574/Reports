@@ -203,8 +203,7 @@ def table(title, rows, first_col, publishers=None, sub=False):
     cols = [first_col] + (["Publisher"] if publishers is not None else []) + \
         ["Clicks", "Conv.", "CR", "Income", "Payout", "Profit"]
     n_left = 2 if publishers is not None else 1
-    head = "".join(f'<th style="text-align:{"left" if i < n_left else "right"};padding:8px;border-bottom:2px solid #e5e7eb">{h}</th>'
-                   for i, h in enumerate(cols))
+    head = "".join(f'<th{" class=l" if i < n_left else ""}>{h}</th>' for i, h in enumerate(cols))
     body = ""
     for r in rows:
         cr = r["conversions"] / r["clicks"] * 100 if r["clicks"] else 0
@@ -214,22 +213,19 @@ def table(title, rows, first_col, publishers=None, sub=False):
         cells += [f'{r["clicks"]:,}', f'{r["conversions"]:,}', f"{cr:.2f}%",
                  money(r["income"]), money(r["payout"]), money(r["profit"])]
         body += "<tr>" + "".join(
-            f'<td style="text-align:{"left" if i < n_left else "right"};padding:8px;border-bottom:1px solid #f1f5f9">{c}</td>'
+            f'<td{" class=l" if i < n_left else ""}>{c}</td>'
             for i, c in enumerate(cells)) + "</tr>"
     if not rows:
-        body = f'<tr><td colspan="{len(cols)}" style="padding:8px;color:#6b7280">No activity</td></tr>'
-    h = (f'<h3 style="font-size:14px;margin:20px 0 6px">{title}</h3>' if sub
-         else f'<h2 style="font-size:16px;margin:28px 0 8px">{title}</h2>')
+        body = f'<tr><td colspan="{len(cols)}" class="l m">No activity</td></tr>'
+    h = (f'<h3>{title}</h3>' if sub else f'<h2>{title}</h2>')
     return (h +
-            f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+            '<table class="t">'
             f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>")
 
 
 def kpi(label, value, sub=""):
-    return (f'<td style="padding:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;width:25%">'
-            f'<div style="font-size:12px;color:#6b7280">{label}</div>'
-            f'<div style="font-size:20px;font-weight:600;margin-top:4px">{value}</div>'
-            f'<div style="font-size:12px;margin-top:2px">{sub}</div></td>')
+    return (f'<td class="k"><div class="m">{label}</div>'
+            f'<div class="v">{value}</div><div>{sub}</div></td>')
 
 
 def publisher_sections(pairs):
@@ -240,10 +236,10 @@ def publisher_sections(pairs):
             by_pub.setdefault(r["publisher"], []).append(r)
     if not by_pub:
         return ""
-    out = '<h2 style="font-size:16px;margin:28px 0 0">Offers run by each publisher — yesterday</h2>'
+    out = '<h2>Offers run by each publisher — yesterday</h2>'
     for pub, rows in sorted(by_pub.items(), key=lambda kv: summarise(kv[1])["income"], reverse=True):
         t = summarise(rows)
-        title = (f'{html.escape(pub)} <span style="font-weight:400;color:#6b7280">· {len(rows)} offer{"s" if len(rows) != 1 else ""} · '
+        title = (f'{html.escape(pub)} <span class="m">· {len(rows)} offer{"s" if len(rows) != 1 else ""} · '
                  f'{t["clicks"]:,} clicks · {t["conversions"]:,} conv. · {money(t["income"])} income · '
                  f'{money(t["profit"])} profit</span>')
         out += table(title, rows, "Offer", sub=True)
@@ -274,18 +270,15 @@ def trend_chart(day, rows):
         # Only yesterday and the best day carry a value label.
         note = ""
         if d in (day, best[0]) and r["income"] > 0:
-            note = (f'<div style="font-size:10px;font-weight:600;color:#111827;white-space:nowrap;'
-                    f'text-align:center;margin-bottom:2px">{r["income"]:,.0f}</div>')
+            note = f'<div class="n">{r["income"]:,.0f}</div>'
         if h > 0:
             color = "#1e40af" if d == day else "#3b82f6"
-            bar = f'<div style="height:{max(h, 3)}px;background:{color};border-radius:4px 4px 0 0"></div>'
+            bar = f'<div class="b" style="height:{max(h, 3)}px;background:{color}"></div>'
         else:
-            bar = '<div style="height:2px;background:#e5e7eb"></div>'
-        cols += (f'<td title="{tip}" valign="bottom" style="padding:0 1px;vertical-align:bottom;'
-                 f'height:{height + 16}px">{note}{bar}</td>')
+            bar = '<div class="z"></div>'
+        cols += f'<td title="{tip}" valign="bottom" class="c">{note}{bar}</td>'
         show = d.day == 1 or d.day % 5 == 0 or d == day
-        labels += (f'<td style="padding:4px 0 0;font-size:10px;color:#6b7280;text-align:center">'
-                   f'{d.day if show else ""}</td>')
+        labels += f'<td class="x">{d.day if show else ""}</td>'
 
     weeks, weekly = [], {}
     for d, r in series:
@@ -298,25 +291,20 @@ def trend_chart(day, rows):
         w["income"] += r["income"]
         w["profit"] += r["profit"]
         w["conversions"] += r["conversions"]
-    cell = 'padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right'
     week_rows = ""
     for start in weeks:
         w = weekly[start]
         span = f'{w["days"][0].strftime("%d %b")} – {w["days"][-1].strftime("%d %b")}'
-        week_rows += (f'<tr><td style="{cell};text-align:left">{span}</td>'
-                      f'<td style="{cell}">{w["conversions"]:,}</td>'
-                      f'<td style="{cell}">{money(w["income"])}</td>'
-                      f'<td style="{cell}">{money(w["profit"])}</td></tr>')
-    th = 'padding:6px 8px;border-bottom:2px solid #e5e7eb;text-align:right;font-weight:600'
+        week_rows += (f'<tr><td class=l>{span}</td><td>{w["conversions"]:,}</td>'
+                      f'<td>{money(w["income"])}</td><td>{money(w["profit"])}</td></tr>')
 
-    return f"""<h2 style="font-size:16px;margin:28px 0 2px">Month-to-date daily income</h2>
-<p style="font-size:12px;color:#6b7280;margin:0 0 12px">Best day {best[0].strftime("%d %b")} ({money(best[1]["income"])})
+    return f"""<h2>Month-to-date daily income</h2>
+<p class="m">Best day {best[0].strftime("%d %b")} ({money(best[1]["income"])})
 · Average {money(avg)} across {len(active)} earning days · Darker bar = yesterday</p>
-<table style="width:100%;border-collapse:collapse;table-layout:fixed">
+<table class="ch">
 <tr>{cols}</tr><tr style="border-top:1px solid #d1d5db">{labels}</tr></table>
-<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:16px">
-<thead><tr><th style="{th};text-align:left">Week</th><th style="{th}">Conv.</th>
-<th style="{th}">Income</th><th style="{th}">Profit</th></tr></thead>
+<table class="t" style="margin-top:16px">
+<thead><tr><th class=l>Week</th><th>Conv.</th><th>Income</th><th>Profit</th></tr></thead>
 <tbody>{week_rows}</tbody></table>"""
 
 
@@ -333,8 +321,23 @@ def render_html(day, data, demo=False):
     banner = ('<p style="background:#fef3c7;padding:8px 12px;border-radius:6px;font-size:13px">'
               "Sample data — not real Affise figures.</p>") if demo else ""
 
-    return f"""<!doctype html><html><head><meta charset="utf-8"><title>CPS Daily Revenue {day}</title></head>
-<body style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111827;max-width:820px;margin:0 auto;padding:24px">
+    return f"""<!doctype html><html><head><meta charset="utf-8"><title>CPS Daily Revenue {day}</title>
+<style>
+body{{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111827;max-width:820px;margin:0 auto;padding:24px}}
+h2{{font-size:16px;margin:28px 0 8px}} h3{{font-size:14px;margin:20px 0 6px}}
+.m{{color:#6b7280;font-size:12px;font-weight:400}}
+.t{{width:100%;border-collapse:collapse;font-size:13px}}
+.t th,.t td{{padding:7px 8px;text-align:right;border-bottom:1px solid #f1f5f9}}
+.t th{{border-bottom:2px solid #e5e7eb}} .t .l{{text-align:left}}
+.k{{padding:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;width:25%;font-size:12px}}
+.v{{font-size:20px;font-weight:600;margin:4px 0 2px}}
+.ch{{width:100%;border-collapse:collapse;table-layout:fixed}}
+.c{{padding:0 1px;vertical-align:bottom;height:166px}}
+.b{{border-radius:4px 4px 0 0}} .z{{height:2px;background:#e5e7eb}}
+.n{{font-size:10px;font-weight:600;white-space:nowrap;text-align:center;margin-bottom:2px}}
+.x{{padding:4px 0 0;font-size:10px;color:#6b7280;text-align:center}}
+</style></head>
+<body>
 {banner}
 <h1 style="font-size:22px;margin:0">CPS Daily Revenue Report</h1>
 <p style="color:#6b7280;margin:4px 0 20px">{day.strftime('%A, %d %B %Y')} · Source: Affise</p>
