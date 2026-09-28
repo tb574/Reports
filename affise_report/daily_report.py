@@ -116,6 +116,20 @@ def summarise(rows):
     return out
 
 
+def week_start(d):
+    """Weeks run Sunday to Saturday (Israeli work week)."""
+    return d - dt.timedelta(days=(d.weekday() + 1) % 7)
+
+
+def summary_periods(day):
+    today = day + dt.timedelta(days=1)
+    return {
+        "sum_today": (today, today),
+        "sum_week": (week_start(today), today),
+        "sum_month": (today.replace(day=1), today),
+    }
+
+
 def collect(day):
     prev = day - dt.timedelta(days=1)
     month_start = day.replace(day=1)
@@ -132,6 +146,9 @@ def collect(day):
         row = normalise(r, "offer")
         row["publisher"] = slice_label(r, "affiliate")
         data["day_by_offer_affiliate"].append(row)
+    # Headline periods for the email body, counted up to "now" (the morning after `day`).
+    for key, (a, b) in summary_periods(day).items():
+        data[key] = [normalise(r, "affiliate") for r in fetch_stats("affiliate", a, b)]
     for r in data["mtd_by_day"]:
         # The day slice comes back as a bare day-of-month number.
         if r["label"].isdigit():
@@ -164,6 +181,9 @@ def demo_data(day):
         "day_by_affiliate": [mk(*p) for p in pubs],
         "day_by_offer": [mk(*o) for o in offers],
         "day_by_offer_affiliate": [dict(mk(*o), publisher=p[0]) for o, p in zip(offers, pubs)],
+        "sum_today": [mk(*p, scale=0.3) for p in pubs],
+        "sum_week": [mk(*p, scale=2.1) for p in pubs],
+        "sum_month": [mk(*p, scale=float(day.day)) for p in pubs],
         "prev_by_affiliate": [mk(*p, scale=0.88) for p in pubs],
         "mtd_by_day": mtd,
     }
@@ -284,7 +304,7 @@ def trend_chart(day, rows):
 
     weeks, weekly = [], {}
     for d, r in series:
-        start = d - dt.timedelta(days=d.weekday())
+        start = week_start(d)
         if start not in weekly:
             weekly[start] = {"days": [], "income": 0.0, "profit": 0.0, "conversions": 0}
             weeks.append(start)
@@ -364,6 +384,50 @@ h2{{font-size:16px;margin:28px 0 8px}} h3{{font-size:14px;margin:20px 0 6px}}
 </body></html>"""
 
 
+def email_rows(day, data):
+    today = day + dt.timedelta(days=1)
+    rows = [
+        (f'Today so far ({today.strftime("%a %d %b")})', summarise(data.get("sum_today", []))),
+        (f'Yesterday ({day.strftime("%a %d %b")})', summarise(data["day_by_affiliate"])),
+        (f'This week (from {week_start(today).strftime("%a %d %b")})', summarise(data.get("sum_week", []))),
+        (f'This month ({today.strftime("%B")})', summarise(data.get("sum_month", []))),
+    ]
+    return rows
+
+
+def email_subject(day, data):
+    t = summarise(data["day_by_affiliate"])
+    return f'CPS Daily Revenue — {day.strftime("%a %d %b")} · {money(t["income"])}'
+
+
+def render_email_html(day, data):
+    """Short email body: revenue and net revenue per period. The full report goes in the PDF."""
+    cell = "padding:8px 12px;border-bottom:1px solid #e5e7eb"
+    rows = "".join(
+        f'<tr><td style="{cell}">{html.escape(label)}</td>'
+        f'<td style="{cell};text-align:right">{money(s["income"])}</td>'
+        f'<td style="{cell};text-align:right">{money(s["profit"])}</td></tr>'
+        for label, s in email_rows(day, data))
+    th = "padding:8px 12px;border-bottom:2px solid #d1d5db;text-align:right"
+    return f"""<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111827;font-size:14px">
+<p style="margin:0 0 12px">CPS revenue summary</p>
+<table style="border-collapse:collapse;font-size:14px">
+<tr><th style="{th};text-align:left"></th><th style="{th}">Revenue</th><th style="{th}">Net revenue</th></tr>
+{rows}</table>
+<p style="margin:14px 0 0;font-size:12px;color:#6b7280">Revenue = what networks pay us. Net revenue = revenue minus
+publisher payouts. Includes pending conversions. Full report attached (PDF).</p>
+</div>"""
+
+
+def render_email_text(day, data):
+    lines = ["CPS revenue summary", ""]
+    for label, s in email_rows(day, data):
+        lines.append(f'{label}: revenue {money(s["income"])}, net revenue {money(s["profit"])}')
+    lines += ["", "Net revenue = revenue minus publisher payouts. Includes pending conversions.",
+              "Full report attached (PDF)."]
+    return "\n".join(lines)
+
+
 def append_log(day, data):
     t = summarise(data["day_by_affiliate"])
     path = os.path.join(OUT_DIR, "daily_log.csv")
@@ -408,6 +472,14 @@ def main(argv):
         pdf = make_pdf(day, data, demo)
         if pdf:
             print(pdf)
+    suffix = "_demo" if demo else ""
+    for ext, body in (("html", render_email_html(day, data)), ("txt", render_email_text(day, data))):
+        path = os.path.join(OUT_DIR, f"email_{day.isoformat()}{suffix}.{ext}")
+        with open(path, "w") as f:
+            f.write(body)
+        print(path)
+    with open(os.path.join(OUT_DIR, f"email_subject_{day.isoformat()}{suffix}.txt"), "w") as f:
+        f.write(email_subject(day, data))
     if not demo:
         print(append_log(day, data))
     with open(os.path.join(OUT_DIR, f"raw_{day.isoformat()}{'_demo' if demo else ''}.json"), "w") as f:

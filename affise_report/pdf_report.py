@@ -201,7 +201,7 @@ def build_pdf(path, day, data, summarise, run_by, cur, demo=False):
     best_d, best_r = max(series, key=lambda x: x[1]["income"])
     weeks, weekly = [], {}
     for d, r in series:
-        start = d - dt.timedelta(days=d.weekday())
+        start = d - dt.timedelta(days=(d.weekday() + 1) % 7)
         if start not in weekly:
             weekly[start] = {"days": [], "income": 0.0, "profit": 0.0, "conversions": 0}
             weeks.append(start)
