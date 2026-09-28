@@ -19,7 +19,7 @@ python3 daily_report.py 2026-09-27   # report for a specific day
 python3 daily_report.py --demo       # sample data, no API call
 ```
 Each run writes to `output/`:
-- `cps_revenue_<date>.pdf`, the same report as an A4 PDF (needs Node + Playwright; skip with `--no-pdf`)
+- `cps_revenue_<date>.pdf`, the same report as an A4 PDF (needs `pip install reportlab`; skip with `--no-pdf`)
 - `cps_revenue_<date>.html`, the report to email
 - `daily_log.csv`, one row per day, which feeds the Drive log sheet
 - `raw_<date>.json`, the raw numbers

@@ -19,11 +19,11 @@ import datetime as dt
 import html
 import json
 import os
-import shutil
-import subprocess
 import sys
 import urllib.parse
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 API_URL = os.environ.get("AFFISE_API_URL", "https://api-nyjltb.affise.com")
 API_KEY = os.environ.get("AFFISE_API_KEY", "")
@@ -381,25 +381,15 @@ def append_log(day, data):
     return path
 
 
-def make_pdf(html_path):
-    """HTML -> PDF with headless Chromium (Playwright via Node). Returns the path, or None."""
-    pdf_path = html_path[:-5] + ".pdf"
-    node = shutil.which("node")
-    if not node:
-        print("PDF skipped: node not found", file=sys.stderr)
-        return None
-    env = dict(os.environ)
+def make_pdf(day, data, demo=False):
+    """Write the PDF version next to the HTML. Returns the path, or None if ReportLab is missing."""
     try:
-        env.setdefault("NODE_PATH", subprocess.run(["npm", "root", "-g"], capture_output=True,
-                                                   text=True).stdout.strip())
-    except OSError:
-        pass
-    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "to_pdf.js")
-    result = subprocess.run([node, script, html_path, pdf_path], env=env, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"PDF skipped: {result.stderr.strip()[-300:]}", file=sys.stderr)
+        from pdf_report import build_pdf
+    except ImportError:
+        print("PDF skipped: pip install reportlab", file=sys.stderr)
         return None
-    return pdf_path
+    path = os.path.join(OUT_DIR, f"cps_revenue_{day.isoformat()}{'_demo' if demo else ''}.pdf")
+    return build_pdf(path, day, data, summarise, run_by, CURRENCY, demo)
 
 
 def main(argv):
@@ -415,7 +405,7 @@ def main(argv):
         f.write(render_html(day, data, demo))
     print(report)
     if "--no-pdf" not in argv:
-        pdf = make_pdf(report)
+        pdf = make_pdf(day, data, demo)
         if pdf:
             print(pdf)
     if not demo:
