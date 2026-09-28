@@ -39,11 +39,11 @@ def affise_get(path, params):
 
 
 def fetch_stats(slice_by, date_from, date_to):
-    """GET /3.0/stats/custom sliced by one dimension, all pages."""
+    """GET /3.0/stats/custom sliced by one or more dimensions, all pages."""
     rows, page = [], 1
     while True:
         data = affise_get("/3.0/stats/custom", {
-            "slice[]": [slice_by],
+            "slice[]": slice_by if isinstance(slice_by, list) else [slice_by],
             "filter[date_from]": date_from.isoformat(),
             "filter[date_to]": date_to.isoformat(),
             "page": page,
@@ -65,16 +65,21 @@ def num(value):
         return 0.0
 
 
+def slice_label(row, slice_by):
+    label = row.get("slice", {}).get(slice_by)
+    if isinstance(label, dict):
+        name = label.get("title") or label.get("name") or label.get("login") or label.get("id")
+        label = f"{name} (#{label.get('id')})" if label.get("id") not in (None, name) else str(name)
+    return str(label) if label is not None else "—"
+
+
 def normalise(row, slice_by):
     """Flatten one Affise stats row.
 
     Affise naming: `charge` is what the advertiser/network pays us (income),
     `revenue` is what we pay the publisher (payout). Profit = charge - revenue.
     """
-    label = row.get("slice", {}).get(slice_by)
-    if isinstance(label, dict):
-        name = label.get("title") or label.get("name") or label.get("login") or label.get("id")
-        label = f"{name} (#{label.get('id')})" if label.get("id") not in (None, name) else str(name)
+    label = slice_label(row, slice_by)
     actions = row.get("actions", {})
     total = actions.get("total", {})
     confirmed = actions.get("confirmed", {})
@@ -84,7 +89,7 @@ def normalise(row, slice_by):
     income = num(total.get("charge"))
     payout = num(total.get("revenue"))
     return {
-        "label": str(label) if label is not None else "—",
+        "label": label,
         "clicks": int(num(traffic.get("raw"))),
         "unique_clicks": int(num(traffic.get("uniq"))),
         "conversions": int(num(total.get("count"))),
@@ -120,6 +125,11 @@ def collect(day):
         "mtd_by_day": (month_start, day, "day"),
     }.items():
         data[key] = [normalise(r, slice_by) for r in fetch_stats(slice_by, a, b)]
+    data["day_by_offer_affiliate"] = []
+    for r in fetch_stats(["offer", "affiliate"], day, day):
+        row = normalise(r, "offer")
+        row["publisher"] = slice_label(r, "affiliate")
+        data["day_by_offer_affiliate"].append(row)
     for r in data["mtd_by_day"]:
         # The day slice comes back as a bare day-of-month number.
         if r["label"].isdigit():
@@ -151,6 +161,7 @@ def demo_data(day):
     return {
         "day_by_affiliate": [mk(*p) for p in pubs],
         "day_by_offer": [mk(*o) for o in offers],
+        "day_by_offer_affiliate": [dict(mk(*o), publisher=p[0]) for o, p in zip(offers, pubs)],
         "prev_by_affiliate": [mk(*p, scale=0.88) for p in pubs],
         "mtd_by_day": mtd,
     }
@@ -171,20 +182,42 @@ def delta(cur, prev):
     return f'<span style="color:{color}">{arrow} {abs(pct):.1f}%</span>'
 
 
-def table(title, rows, first_col):
+def run_by(pairs):
+    """Offer label -> who ran it, e.g. "Bidder" or "Bidder $300 · IdeaClan $53"."""
+    by_offer = {}
+    for r in pairs:
+        if r["clicks"] or r["conversions"]:
+            by_offer.setdefault(r["label"], []).append(r)
+    out = {}
+    for offer, rows in by_offer.items():
+        rows.sort(key=lambda r: (r["income"], r["clicks"]), reverse=True)
+        names = [r["publisher"].split(" (#")[0] for r in rows]
+        if len(rows) > 1:
+            names = [f'{n} {r["income"]:,.0f}' for n, r in zip(names, rows)]
+        out[offer] = " · ".join(names)
+    return out
+
+
+def table(title, rows, first_col, publishers=None):
     rows = sorted(rows, key=lambda r: r["income"], reverse=True)
-    head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};padding:8px;border-bottom:2px solid #e5e7eb">{h}</th>'
-                   for i, h in enumerate([first_col, "Clicks", "Conv.", "CR", "Income", "Payout", "Profit"]))
+    cols = [first_col] + (["Publisher"] if publishers is not None else []) + \
+        ["Clicks", "Conv.", "CR", "Income", "Payout", "Profit"]
+    n_left = 2 if publishers is not None else 1
+    head = "".join(f'<th style="text-align:{"left" if i < n_left else "right"};padding:8px;border-bottom:2px solid #e5e7eb">{h}</th>'
+                   for i, h in enumerate(cols))
     body = ""
     for r in rows:
         cr = r["conversions"] / r["clicks"] * 100 if r["clicks"] else 0
-        cells = [html.escape(r["label"]), f'{r["clicks"]:,}', f'{r["conversions"]:,}', f"{cr:.2f}%",
+        cells = [html.escape(r["label"])]
+        if publishers is not None:
+            cells.append(html.escape(publishers.get(r["label"], "—")))
+        cells += [f'{r["clicks"]:,}', f'{r["conversions"]:,}', f"{cr:.2f}%",
                  money(r["income"]), money(r["payout"]), money(r["profit"])]
         body += "<tr>" + "".join(
-            f'<td style="text-align:{"left" if i == 0 else "right"};padding:8px;border-bottom:1px solid #f1f5f9">{c}</td>'
+            f'<td style="text-align:{"left" if i < n_left else "right"};padding:8px;border-bottom:1px solid #f1f5f9">{c}</td>'
             for i, c in enumerate(cells)) + "</tr>"
     if not rows:
-        body = '<tr><td colspan="7" style="padding:8px;color:#6b7280">No activity</td></tr>'
+        body = f'<tr><td colspan="{len(cols)}" style="padding:8px;color:#6b7280">No activity</td></tr>'
     return (f'<h2 style="font-size:16px;margin:28px 0 8px">{title}</h2>'
             f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
             f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>")
@@ -297,7 +330,7 @@ def render_html(day, data, demo=False):
 {kpi("MTD conversions", f'{m["conversions"]:,}', f'{m["declined"]} declined')}
 </tr></table>
 {table("Revenue by publisher — yesterday", data["day_by_affiliate"], "Publisher")}
-{table("Revenue by offer — yesterday", data["day_by_offer"], "Offer")}
+{table("Revenue by offer — yesterday", data["day_by_offer"], "Offer", run_by(data.get("day_by_offer_affiliate", [])))}
 {trend}
 <p style="font-size:11px;color:#9ca3af;margin-top:28px">Income = amount networks pay us (Affise "charge"). Payout = publisher share
 (Affise "revenue"). Profit = Income − Payout. Includes pending conversions, which may still be declined by the network.</p>
