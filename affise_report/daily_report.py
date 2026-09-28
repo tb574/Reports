@@ -19,6 +19,8 @@ import datetime as dt
 import html
 import json
 import os
+import shutil
+import subprocess
 import sys
 import urllib.parse
 import urllib.request
@@ -336,6 +338,7 @@ h2{{font-size:16px;margin:28px 0 8px}} h3{{font-size:14px;margin:20px 0 6px}}
 .b{{border-radius:4px 4px 0 0}} .z{{height:2px;background:#e5e7eb}}
 .n{{font-size:10px;font-weight:600;white-space:nowrap;text-align:center;margin-bottom:2px}}
 .x{{padding:4px 0 0;font-size:10px;color:#6b7280;text-align:center}}
+@media print{{body{{padding:0}} tr{{break-inside:avoid}} h2,h3{{break-after:avoid}} .ch{{break-inside:avoid}}}}
 </style></head>
 <body>
 {banner}
@@ -378,6 +381,27 @@ def append_log(day, data):
     return path
 
 
+def make_pdf(html_path):
+    """HTML -> PDF with headless Chromium (Playwright via Node). Returns the path, or None."""
+    pdf_path = html_path[:-5] + ".pdf"
+    node = shutil.which("node")
+    if not node:
+        print("PDF skipped: node not found", file=sys.stderr)
+        return None
+    env = dict(os.environ)
+    try:
+        env.setdefault("NODE_PATH", subprocess.run(["npm", "root", "-g"], capture_output=True,
+                                                   text=True).stdout.strip())
+    except OSError:
+        pass
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "to_pdf.js")
+    result = subprocess.run([node, script, html_path, pdf_path], env=env, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"PDF skipped: {result.stderr.strip()[-300:]}", file=sys.stderr)
+        return None
+    return pdf_path
+
+
 def main(argv):
     demo = "--demo" in argv
     args = [a for a in argv if not a.startswith("--")]
@@ -390,6 +414,10 @@ def main(argv):
     with open(report, "w") as f:
         f.write(render_html(day, data, demo))
     print(report)
+    if "--no-pdf" not in argv:
+        pdf = make_pdf(report)
+        if pdf:
+            print(pdf)
     if not demo:
         print(append_log(day, data))
     with open(os.path.join(OUT_DIR, f"raw_{day.isoformat()}{'_demo' if demo else ''}.json"), "w") as f:
