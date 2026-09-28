@@ -198,7 +198,7 @@ def run_by(pairs):
     return out
 
 
-def table(title, rows, first_col, publishers=None):
+def table(title, rows, first_col, publishers=None, sub=False):
     rows = sorted(rows, key=lambda r: r["income"], reverse=True)
     cols = [first_col] + (["Publisher"] if publishers is not None else []) + \
         ["Clicks", "Conv.", "CR", "Income", "Payout", "Profit"]
@@ -218,7 +218,9 @@ def table(title, rows, first_col, publishers=None):
             for i, c in enumerate(cells)) + "</tr>"
     if not rows:
         body = f'<tr><td colspan="{len(cols)}" style="padding:8px;color:#6b7280">No activity</td></tr>'
-    return (f'<h2 style="font-size:16px;margin:28px 0 8px">{title}</h2>'
+    h = (f'<h3 style="font-size:14px;margin:20px 0 6px">{title}</h3>' if sub
+         else f'<h2 style="font-size:16px;margin:28px 0 8px">{title}</h2>')
+    return (h +
             f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
             f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>")
 
@@ -228,6 +230,24 @@ def kpi(label, value, sub=""):
             f'<div style="font-size:12px;color:#6b7280">{label}</div>'
             f'<div style="font-size:20px;font-weight:600;margin-top:4px">{value}</div>'
             f'<div style="font-size:12px;margin-top:2px">{sub}</div></td>')
+
+
+def publisher_sections(pairs):
+    """One block per publisher listing every offer it ran yesterday."""
+    by_pub = {}
+    for r in pairs:
+        if r["clicks"] or r["conversions"]:
+            by_pub.setdefault(r["publisher"], []).append(r)
+    if not by_pub:
+        return ""
+    out = '<h2 style="font-size:16px;margin:28px 0 0">Offers run by each publisher — yesterday</h2>'
+    for pub, rows in sorted(by_pub.items(), key=lambda kv: summarise(kv[1])["income"], reverse=True):
+        t = summarise(rows)
+        title = (f'{html.escape(pub)} <span style="font-weight:400;color:#6b7280">· {len(rows)} offer{"s" if len(rows) != 1 else ""} · '
+                 f'{t["clicks"]:,} clicks · {t["conversions"]:,} conv. · {money(t["income"])} income · '
+                 f'{money(t["profit"])} profit</span>')
+        out += table(title, rows, "Offer", sub=True)
+    return out
 
 
 def trend_chart(day, rows):
@@ -330,6 +350,7 @@ def render_html(day, data, demo=False):
 {kpi("MTD conversions", f'{m["conversions"]:,}', f'{m["declined"]} declined')}
 </tr></table>
 {table("Revenue by publisher — yesterday", data["day_by_affiliate"], "Publisher")}
+{publisher_sections(data.get("day_by_offer_affiliate", []))}
 {table("Revenue by offer — yesterday", data["day_by_offer"], "Offer", run_by(data.get("day_by_offer_affiliate", [])))}
 {trend}
 <p style="font-size:11px;color:#9ca3af;margin-top:28px">Income = amount networks pay us (Affise "charge"). Payout = publisher share
