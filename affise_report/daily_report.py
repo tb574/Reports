@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Daily CPS revenue report from Affise.
 
-Pulls yesterday's stats (plus the day before and the month-to-date) from the
+Pulls yesterday's stats (plus the two days before it and the month-to-date) from the
 Affise Admin API and writes:
   * an HTML report ready to email to management
   * a CSV row per day for the Google Drive log sheet
@@ -116,6 +116,7 @@ def collect(day):
         "day_by_affiliate": (day, day, "affiliate"),
         "day_by_offer": (day, day, "offer"),
         "prev_by_affiliate": (prev, prev, "affiliate"),
+        "last3_by_day": (day - dt.timedelta(days=2), day, "day"),
         "mtd_by_day": (month_start, day, "day"),
     }.items():
         data[key] = [normalise(r, slice_by) for r in fetch_stats(slice_by, a, b)]
@@ -147,6 +148,8 @@ def demo_data(day):
         "day_by_affiliate": [mk(*p) for p in pubs],
         "day_by_offer": [mk(*o) for o in offers],
         "prev_by_affiliate": [mk(*p, scale=0.88) for p in pubs],
+        "last3_by_day": [mk((day - dt.timedelta(days=i)).isoformat(), 9440, 101, 2630.0, 1841.0, s)
+                         for i, s in ((2, 0.81), (1, 0.88), (0, 1.0))],
         "mtd_by_day": mtd,
     }
 
@@ -166,8 +169,8 @@ def delta(cur, prev):
     return f'<span style="color:{color}">{arrow} {abs(pct):.1f}%</span>'
 
 
-def table(title, rows, first_col):
-    rows = sorted(rows, key=lambda r: r["income"], reverse=True)
+def table(title, rows, first_col, by_label=False, total=False):
+    rows = sorted(rows, key=lambda r: r["label"]) if by_label else sorted(rows, key=lambda r: r["income"], reverse=True)
     head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};padding:8px;border-bottom:2px solid #e5e7eb">{h}</th>'
                    for i, h in enumerate([first_col, "Clicks", "Conv.", "CR", "Income", "Payout", "Profit"]))
     body = ""
@@ -180,6 +183,13 @@ def table(title, rows, first_col):
             for i, c in enumerate(cells)) + "</tr>"
     if not rows:
         body = '<tr><td colspan="7" style="padding:8px;color:#6b7280">No activity</td></tr>'
+    elif total:
+        s = summarise(rows)
+        cells = ["Total", f'{s["clicks"]:,}', f'{s["conversions"]:,}', f'{s["cr"]:.2f}%',
+                 money(s["income"]), money(s["payout"]), money(s["profit"])]
+        body += "<tr>" + "".join(
+            f'<td style="text-align:{"left" if i == 0 else "right"};padding:8px;font-weight:600;border-top:2px solid #e5e7eb">{c}</td>'
+            for i, c in enumerate(cells)) + "</tr>"
     return (f'<h2 style="font-size:16px;margin:28px 0 8px">{title}</h2>'
             f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
             f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>")
@@ -226,6 +236,7 @@ def render_html(day, data, demo=False):
 {kpi("Month forecast (income)", money(forecast), "run-rate")}
 {kpi("MTD conversions", f'{m["conversions"]:,}', f'{m["declined"]} declined')}
 </tr></table>
+{table("Last 3 days (yesterday and the 2 days before)", data["last3_by_day"], "Date", by_label=True, total=True)}
 {table("Revenue by publisher — yesterday", data["day_by_affiliate"], "Publisher")}
 {table("Revenue by offer — yesterday", data["day_by_offer"], "Offer")}
 <h2 style="font-size:16px;margin:28px 0 8px">Month-to-date daily income</h2>

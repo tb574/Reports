@@ -5,6 +5,7 @@ Builds a daily report of CPS revenue for management from the Affise Admin API
 
 ## What it shows
 - Yesterday: income, payout, profit and margin, conversions (approved, pending and declined), clicks, CR and EPC, compared with the day before
+- Last 3 days: yesterday and the 2 days before it, one row per day with a total (today is never included)
 - Month to date: income, profit and a run-rate forecast for the month
 - Breakdowns by publisher and by offer
 - A daily income trend for the month
