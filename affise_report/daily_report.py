@@ -40,19 +40,26 @@ def affise_get(path, params):
 
 def fetch_stats(slice_by, date_from, date_to):
     """GET /3.0/stats/custom sliced by one dimension, all pages."""
+    # A bare "day" slice only returns the day of the month, so add year and month to get a full date.
+    slices = ["year", "month", "day"] if slice_by == "day" else [slice_by]
+    # No currency filter: unfiltered, Affise converts every conversion into the account currency (USD).
+    # Filtering by currency drops clicks and every conversion in other currencies (e.g. EUR offers).
     rows, page = [], 1
     while True:
         data = affise_get("/3.0/stats/custom", {
-            "slice[]": [slice_by],
+            "slice[]": slices,
             "filter[date_from]": date_from.isoformat(),
             "filter[date_to]": date_to.isoformat(),
-            "filter[currency]": CURRENCY,
             "page": page,
             "limit": 500,
         })
-        rows.extend(data.get("stats", []))
+        if data.get("status") != 1:
+            raise RuntimeError(f"Affise error: {data.get('error') or data}")
+        stats = data.get("stats", [])
+        rows.extend(stats)
         pagination = data.get("pagination") or {}
-        if not pagination.get("next_page"):
+        per_page = int(pagination.get("per_page") or len(stats) or 1)
+        if not stats or page * per_page >= int(pagination.get("total_count") or 0):
             return rows
         page += 1
 
@@ -70,16 +77,21 @@ def normalise(row, slice_by):
     Affise naming: `charge` is what the advertiser/network pays us (income),
     `revenue` is what we pay the publisher (payout). Profit = charge - revenue.
     """
-    label = row.get("slice", {}).get(slice_by)
-    if isinstance(label, dict):
+    sl = row.get("slice", {})
+    label = sl.get(slice_by)
+    if slice_by == "day" and "year" in sl and "month" in sl:
+        label = dt.date(int(sl["year"]), int(sl["month"]), int(sl["day"])).isoformat()
+    elif isinstance(label, dict):
         name = label.get("title") or label.get("name") or label.get("login") or label.get("id")
         label = f"{name} (#{label.get('id')})" if label.get("id") not in (None, name) else str(name)
-    actions = row.get("actions", {})
-    total = actions.get("total", {})
-    confirmed = actions.get("confirmed", {})
-    pending = actions.get("pending", {})
-    declined = actions.get("declined", {})
-    traffic = row.get("traffic", {})
+    # Affise sends an empty list instead of an object when a row has no data.
+    obj = lambda v: v if isinstance(v, dict) else {}
+    actions = obj(row.get("actions"))
+    total = obj(actions.get("total"))
+    confirmed = obj(actions.get("confirmed"))
+    pending = obj(actions.get("pending"))
+    declined = obj(actions.get("declined"))
+    traffic = obj(row.get("traffic"))
     income = num(total.get("charge"))
     payout = num(total.get("revenue"))
     return {

@@ -10,7 +10,7 @@ Builds a daily report of CPS revenue for management from the Affise Admin API
 - Breakdowns by publisher and by offer
 - A daily income trend for the month
 
-Income is what the networks pay us (the Affise field `charge`). Payout is the publisher's share (the Affise field `revenue`). Profit is income minus payout.
+All amounts are in USD: Affise converts sales in other currencies (e.g. EUR offers) into the account currency. Income is what the networks pay us (the Affise field `charge`). Payout is the publisher's share (the Affise field `revenue`). Profit is income minus payout.
 
 ## Run
 ```bash
