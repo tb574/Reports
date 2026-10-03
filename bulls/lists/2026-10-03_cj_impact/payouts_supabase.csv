@@ -1,0 +1,39 @@
+keyword,network_account,approval_supabase,payout_value,payout_currency,payout_range,paid_search,brand_bidding,direct_linking,terms_note
+airalo,Impact NYJL,approved,10%,USD,10%-15% per sale,,,,
+aliexpress,CJ,approved,1%,,0%-8% per sale depending on category,,,,
+base44,Impact NYJL,approved,50,USD,USD 50 or 100 per purchase,,,,
+base44,Impact C,approved,,,no payout listed for this account,,,,
+brandsmart,Impact C,approved,1%,USD,1%-5% per sale,,,,
+capcut,Impact NYJL,approved,30%,USD,30%-60% per sale; installs pay USD 0.50-3,,,,
+capcut,Impact C,approved,30%,USD,30%-60% per sale; installs pay USD 0.50-3,,,,
+carwow,Impact NYJL,approved,100,GBP,GBP 100 per car listing sold,,,,"Terms: no payout if the advertiser re-engages the user via paid search"
+carwow,Impact C,approved,100,GBP,GBP 100 per car listing sold,,,,"Terms: no payout if the advertiser re-engages the user via paid search"
+casetify,Impact C,approved,1%,USD,1%-5% per sale,No,No,No,"Terms: PPC bidding on CASETiFY and variations prohibited; no direct linking from paid ads"
+coursera,Impact C,approved,15%,USD,15%-45% per sale,No,No,No,"Terms: no promotion via paid search; trademark bidding strictly prohibited"
+coursera,Impact NYJL,approved,15%,USD,15%-45% per sale,No,No,No,"Terms: no promotion via paid search; trademark bidding strictly prohibited"
+cricut,Impact NYJL,approved,4%,USD,4%-12% per sale,,,,
+dhgate,Impact NYJL,approved,2%,USD,2%-50% per purchase,,,,
+dhgate,Impact C,approved,2%,USD,2%-50% per purchase,,,,
+dji,Impact C,approved,0.5%,USD,0.5%-8% per sale,,,,
+fabletics,Impact NYJL,approved,7.5%,USD,7.5%-20% per VIP sale,,No,,"Terms: bidding on Fabletics brand terms prohibited on all search engines"
+freecash,Impact NYJL,approved,4,USD,USD 4 per single opt-in lead,,,,
+hostinger,Impact NYJL,approved,40%,USD,40%-60% per sale,,No,No,"Terms: Hostinger is a protected SEM keyword; direct linking: No"
+hubspot,Impact C,approved,30%,USD,30% initial and recurring,,,,
+humble bundle,Impact NYJL,approved,4%,USD,4%-8% per sale (20% promo until 2026-10-06); some sales pay USD 5 or 40,,,,
+incogni,CJ,approved,50,USD,USD 50 per sale,,,,
+lenovo,Impact NYJL,approved,4%,INR,4%-8% per sale,,,,
+nordvpn,CJ,approved,40%,,40% per new subscription,,,,"CJ terms not in database; NordVPN's Impact terms ban bidding on NordVPN / Nord VPN"
+nordvpn,Impact NYJL,approved,40%,USD,40% new customer; 30% NordPass,,No,,"Terms: bidding on NordVPN, Nord VPN and variations banned"
+nordvpn,Impact C,approved,40%,USD,40% new customer; 30% NordPass,,No,,"Terms: bidding on NordVPN, Nord VPN and variations banned"
+pop mart,Impact NYJL,approved,4%,USD,4%-7% per sale,,,,
+postermywall,Impact NYJL,approved,20%,USD,20% per subscription,,,,
+ring doorbell,Impact C,approved,10%,USD,10% per sale,,,,
+ringconn,Impact C,expired,,,,,,,"Supabase: expired in this account; pending in NYJL"
+shopify,Impact NYJL,approved,25,USD,USD 25 or 150 per full-price shop,,,,
+shopify,Impact C,approved,25,USD,USD 25 or 150 per full-price shop,,,,
+udemy,Impact NYJL,approved,10%,USD,10%-20% per sale; USD 5 per voucher,,,,"Export says contract ended 2026-10-01; Supabase shows approved with no end date"
+upwork,Impact NYJL,approved,70%,USD,70% per new client start,,,,
+verizon,CJ,approved,75,USD,USD 75 new service contract; 30 extra line; 150 VerizonONE; many products pay 0,,No,,"Terms: no search marketing using Verizon trademarks as keywords"
+virgin voyages,Impact NYJL,approved,12%,USD,12% per online booking,,,,
+vivid seats,Impact NYJL,approved,6%,USD,6% per purchase,,No,,"Terms: may not bid on Vivid Seats trademarks or misspellings"
+vrbo,CJ,approved,2%,,2% per booking,,,,"Terms: Expedia TM+ bidding requirements apply; the actual bidding rules are in the Program Policies on the Expedia partner site"

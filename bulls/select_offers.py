@@ -601,7 +601,13 @@ def needed_cell(o):
     """Payout at which a click breaks even = CPC / CR. Uses only the CPC, so it works before payouts are known."""
     if o["cpc_value"] is None:
         return nv(CPC_NA)
-    return f'{money(o["cpc_value"] / 0.01, o["cpc_cur"])} / {money(o["cpc_value"] / 0.02, o["cpc_cur"])}'
+    cell = f'{money(o["cpc_value"] / 0.01, o["cpc_cur"])} / {money(o["cpc_value"] / 0.02, o["cpc_cur"])}'
+    rate = num(o["best"]["payout_raw"]) if o["best"]["is_percent"] else None
+    if rate:
+        # % offers: the average order the payout rate must apply to, to earn the break-even payout at 2% CR
+        cell += (f'<br><small style="color:#6b7280">needs average order ≥ '
+                 f'{money(o["cpc_value"] / 0.02 / (rate / 100), o["cpc_cur"])} at {rate:g}%</small>')
+    return cell
 
 
 def qualified_table(offers):
