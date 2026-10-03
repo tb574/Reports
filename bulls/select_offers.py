@@ -115,9 +115,15 @@ def build_source(row):
         "reconcilable": yes_no(row.get("conversions_reconcilable")),
         "share_pct": num(row.get("network_share_pct")),
         "aov": num(row.get("verified_aov")),
+        "aov_estimated": False,
+        "aov_source": clean(row.get("aov_source")),
         "notes": clean(row.get("notes")),
         "row": row,
     }
+    # A public estimate (filings, pricing pages) is used only when no verified AOV exists, and is flagged everywhere.
+    if s["aov"] is None and num(row.get("estimated_aov")) is not None:
+        s["aov"] = num(row.get("estimated_aov"))
+        s["aov_estimated"] = True
     value = num(raw_payout)
     s["is_percent"] = "%" in raw_payout or ptype in PERCENT_TYPES
     s["gross"] = s["real"] = None
@@ -304,6 +310,9 @@ def evaluate(key, rows, cfg, history):
         o["review"].append("conversions cannot be reconciled with the network")
     if best["restrictions"]:
         o["review"].append(f"restrictions to read before launch: {best['restrictions']}")
+    if best["aov_estimated"] and best["real"] is not None:
+        o["review"].append(f"order value is a public estimate ({money(best['aov'], best['currency'])}"
+                           f"{', ' + best['aov_source'] if best['aov_source'] else ''}): the first test must confirm it")
 
     if o["be"] is not None:
         if o["be"] > CR_SCENARIOS[-1]:
@@ -369,7 +378,7 @@ def confidence(o, best):
     else:
         conf = "HIGH"
     stale = any("days ago" in r or "CPC date" in r for r in o["review"])
-    if stale and conf != "LOW":
+    if (stale or best["aov_estimated"]) and conf != "LOW":
         conf = "MEDIUM" if conf == "HIGH" else "LOW"
     return conf
 
@@ -587,6 +596,8 @@ def payout_cell(o):
         return nv(AOV_REQ if b["payout_issue"] == AOV_REQ else NV)
     gross = b["payout_raw"] if b["is_percent"] else money(b["gross"], b["currency"])
     extra = f'<br><small style="color:#6b7280">{e(gross)} gross</small>' if b["gross"] != b["real"] or b["is_percent"] else ""
+    if b["aov_estimated"]:
+        extra += f'<br><small style="color:#92400e">ESTIMATE: order {money(b["aov"], b["currency"])}</small>'
     return money(b["real"], b["currency"]) + extra
 
 
