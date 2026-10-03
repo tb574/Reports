@@ -4,11 +4,12 @@ Builds a daily report of CPS revenue for management from the Affise Admin API
 (`api-nyjltb.affise.com`).
 
 ## What it shows
-- Yesterday: income, payout, profit and margin, conversions (approved, pending and declined), clicks, CR and EPC, compared with the day before
-- Last 3 days: yesterday and the 2 days before it, one row per day with a total (today is never included)
-- Month to date: income, profit and a run-rate forecast for the month
-- Breakdowns by publisher and by offer
-- A daily income trend for the month
+- Yesterday vs 2 days ago, side by side: income, payout, profit, margin, conversions (approved and pending), clicks, CR and EPC, with the % change
+- Both days broken down by publisher and by offer
+- Last month (the full previous calendar month): totals, plus breakdowns by publisher and by offer
+- Month to date up to yesterday: income, profit, a run-rate forecast and a daily income trend
+
+Today is never included, because its numbers are still incomplete.
 
 All amounts are in USD: Affise converts sales in other currencies (e.g. EUR offers) into the account currency. Income is what the networks pay us (the Affise field `charge`). Payout is the publisher's share (the Affise field `revenue`). Profit is income minus payout.
 
