@@ -1,0 +1,5 @@
+test_id,brand,category,geo,launch_date,traffic_source,ad_account,offer_source,network_account,payout,payout_currency,planned_cpc,test_budget,max_clicks,search_volume,commercial_intent,clicks,spend,conversions,revenue,tracking_working,offer_still_active,terms_changed,status,result,why
+T001,ExampleSoftware,Software,US,2026-07-10,Google Ads,Ads 1,NetA,Bulls main,80,USD,0.90,270,300,500000,MEDIUM,300,285,0,0,Yes,Yes,No,STOP,ZERO CONVERSIONS,"Most clicks were support/login searches; negative keywords not set"
+T002,DemoShop,Retail,US,2026-06-02,Google Ads,Ads 1,NetA,Bulls main,40,USD,0.30,120,400,700000,HIGH,400,118,9,360,Yes,Yes,No,SCALE,PROFIT,"Coupon searches converted at 2.2%"
+T003,SampleCloud,Software,UK,2026-08-15,Google Ads,Ads 2,NetB,Bulls 2,50,USD,1.20,150,125,350000,MEDIUM,125,152,1,50,Yes,Yes,No,STOP,LOSS,"CPC rose 30% above plan in week one"
+T004,SampleSkin,Beauty,US,2026-09-25,Google Ads,Ads 1,NetC,Bulls main,30,USD,0.35,105,300,500000,HIGH,170,58,0,0,Yes,Yes,No,TESTING,,
