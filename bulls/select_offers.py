@@ -597,8 +597,16 @@ def cpc_cell(o):
     return money(o["cpc_value"], o["cpc_cur"]) + (f'<br><small style="color:#6b7280">{e(when)}</small>' if when else "")
 
 
+def needed_cell(o):
+    """Payout at which a click breaks even = CPC / CR. Uses only the CPC, so it works before payouts are known."""
+    if o["cpc_value"] is None:
+        return nv(CPC_NA)
+    return f'{money(o["cpc_value"] / 0.01, o["cpc_cur"])} / {money(o["cpc_value"] / 0.02, o["cpc_cur"])}'
+
+
 def qualified_table(offers):
-    head = ["Brand", "Network", "Account", "GEO", "Search vol.", "Real payout", "Payout type", "CPC", "Intent",
+    head = ["Brand", "Network", "Account", "GEO", "Search vol.", "Real payout", "Payout type", "CPC",
+            "Break-even payout @1% / @2% CR", "Intent",
             "Paid search", "Brand bid", "Direct link", "Break-even CR", "Margin/click @1%", "Margin/click @2%",
             "Score", "Confidence", "Status", "Notes"]
     rows = []
@@ -610,7 +618,7 @@ def qualified_table(offers):
         rows.append([
             f"<b>{e(o['brand'])}</b><br><small style='color:#6b7280'>{e(o['category'])}</small>",
             nv(b["network"]), nv(b["account"]), nv(o["geo"]), f"{o['sv']:,.0f}", payout_cell(o), nv(b["payout_type"]),
-            cpc_cell(o), badge(o["intent"]) if o["intent"] != NV else nv(NV), nv(b["paid_search"]),
+            cpc_cell(o), needed_cell(o), badge(o["intent"]) if o["intent"] != NV else nv(NV), nv(b["paid_search"]),
             nv(b["brand_bidding"]), nv(b["direct_linking"]), f"<b>{pct(o['be'])}</b>" if o["be"] is not None else nv(NV),
             margin_cell(o, 0.01), margin_cell(o, 0.02), f"<b>{o['score']}</b>", badge(o["confidence"]),
             badge(o["status"]), '<small style="display:block;min-width:220px">' + "<br>".join(e(n) for n in notes) + "</small>",
@@ -740,7 +748,8 @@ are scenarios, not predictions. Nothing here launches a campaign.</p>
     "Real payout = what reaches us after any network share.")}
 {qualified_table(offers)}
 <h3 style="font-size:14px;margin:22px 0 6px">Economics per click</h3>
-<p style="font-size:12px;color:#6b7280;margin:0 0 6px">Revenue per click = real payout × CR. Margin per click = revenue per click − CPC.
+<p style="font-size:12px;color:#6b7280;margin:0 0 6px">"Break-even payout" = CPC ÷ CR: an offer must pay at least this per
+conversion to break even at that conversion rate. Revenue per click = real payout × CR. Margin per click = revenue per click − CPC.
 Break-even CR = CPC ÷ real payout: the conversion rate needed just to get our money back.</p>
 {economics_table(offers)}
 <h3 style="font-size:14px;margin:22px 0 6px">Low priority / do not test yet (under {cfg.min_volume:,} searches)</h3>
