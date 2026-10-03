@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Daily CPS revenue report from Affise.
 
-Pulls yesterday's stats (plus the two days before it and the month-to-date) from the
+Pulls yesterday's and the day before's stats, the whole of last month and month-to-date from the
 Affise Admin API and writes:
   * an HTML report ready to email to management
   * a CSV row per day for the Google Drive log sheet
@@ -123,12 +123,16 @@ def summarise(rows):
 def collect(day):
     prev = day - dt.timedelta(days=1)
     month_start = day.replace(day=1)
+    lm_end = month_start - dt.timedelta(days=1)
+    lm_start = lm_end.replace(day=1)
     data = {}
     for key, (a, b, slice_by) in {
         "day_by_affiliate": (day, day, "affiliate"),
         "day_by_offer": (day, day, "offer"),
         "prev_by_affiliate": (prev, prev, "affiliate"),
-        "last3_by_day": (day - dt.timedelta(days=2), day, "day"),
+        "prev_by_offer": (prev, prev, "offer"),
+        "lastmonth_by_affiliate": (lm_start, lm_end, "affiliate"),
+        "lastmonth_by_offer": (lm_start, lm_end, "offer"),
         "mtd_by_day": (month_start, day, "day"),
     }.items():
         data[key] = [normalise(r, slice_by) for r in fetch_stats(slice_by, a, b)]
@@ -160,8 +164,9 @@ def demo_data(day):
         "day_by_affiliate": [mk(*p) for p in pubs],
         "day_by_offer": [mk(*o) for o in offers],
         "prev_by_affiliate": [mk(*p, scale=0.88) for p in pubs],
-        "last3_by_day": [mk((day - dt.timedelta(days=i)).isoformat(), 9440, 101, 2630.0, 1841.0, s)
-                         for i, s in ((2, 0.81), (1, 0.88), (0, 1.0))],
+        "prev_by_offer": [mk(*o, scale=0.91) for o in offers],
+        "lastmonth_by_affiliate": [mk(*p, scale=29.4) for p in pubs],
+        "lastmonth_by_offer": [mk(*o, scale=30.2) for o in offers],
         "mtd_by_day": mtd,
     }
 
@@ -176,35 +181,76 @@ def delta(cur, prev):
     if not prev:
         return '<span style="color:#6b7280">n/a</span>'
     pct = (cur - prev) / prev * 100
+    if abs(pct) < 0.05:
+        return '<span style="color:#6b7280">– 0.0%</span>'
     color = "#15803d" if pct >= 0 else "#b91c1c"
     arrow = "▲" if pct >= 0 else "▼"
     return f'<span style="color:{color}">{arrow} {abs(pct):.1f}%</span>'
 
 
-def table(title, rows, first_col, by_label=False, total=False):
-    rows = sorted(rows, key=lambda r: r["label"]) if by_label else sorted(rows, key=lambda r: r["income"], reverse=True)
-    head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};padding:8px;border-bottom:2px solid #e5e7eb">{h}</th>'
-                   for i, h in enumerate([first_col, "Clicks", "Conv.", "CR", "Income", "Payout", "Profit"]))
-    body = ""
-    for r in rows:
-        cr = r["conversions"] / r["clicks"] * 100 if r["clicks"] else 0
-        cells = [html.escape(r["label"]), f'{r["clicks"]:,}', f'{r["conversions"]:,}', f"{cr:.2f}%",
-                 money(r["income"]), money(r["payout"]), money(r["profit"])]
-        body += "<tr>" + "".join(
-            f'<td style="text-align:{"left" if i == 0 else "right"};padding:8px;border-bottom:1px solid #f1f5f9">{c}</td>'
-            for i, c in enumerate(cells)) + "</tr>"
+TH = 'style="text-align:{a};padding:8px;border-bottom:2px solid #e5e7eb"'
+TD = 'style="text-align:{a};padding:8px;border-bottom:1px solid #f1f5f9{x}"'
+
+
+def grid(title, head, rows, bold_last=False):
+    h = "".join(f'<th {TH.format(a="left" if i == 0 else "right")}>{c}</th>' for i, c in enumerate(head))
+    b = ""
+    for n, cells in enumerate(rows):
+        x = ";font-weight:600" if bold_last and n == len(rows) - 1 else ""
+        b += "<tr>" + "".join(f'<td {TD.format(a="left" if i == 0 else "right", x=x)}>{c}</td>'
+                              for i, c in enumerate(cells)) + "</tr>"
     if not rows:
-        body = '<tr><td colspan="7" style="padding:8px;color:#6b7280">No activity</td></tr>'
-    elif total:
-        s = summarise(rows)
-        cells = ["Total", f'{s["clicks"]:,}', f'{s["conversions"]:,}', f'{s["cr"]:.2f}%',
-                 money(s["income"]), money(s["payout"]), money(s["profit"])]
-        body += "<tr>" + "".join(
-            f'<td style="text-align:{"left" if i == 0 else "right"};padding:8px;font-weight:600;border-top:2px solid #e5e7eb">{c}</td>'
-            for i, c in enumerate(cells)) + "</tr>"
+        b = f'<tr><td colspan="{len(head)}" style="padding:8px;color:#6b7280">No activity</td></tr>'
     return (f'<h2 style="font-size:16px;margin:28px 0 8px">{title}</h2>'
             f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
-            f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>")
+            f"<thead><tr>{h}</tr></thead><tbody>{b}</tbody></table>")
+
+
+def two_day_summary(day, t, p):
+    """Metrics as rows, yesterday vs 2 days ago as columns."""
+    prev = day - dt.timedelta(days=1)
+    head = ["", f"Yesterday<br><small>{day:%a %d %b}</small>", f"2 days ago<br><small>{prev:%a %d %b}</small>", "Change"]
+    metrics = [("Income", "income", money), ("Payout", "payout", money), ("Profit", "profit", money),
+               ("Conversions", "conversions", lambda v: f"{v:,}"), ("Approved", "approved", lambda v: f"{v:,}"),
+               ("Pending", "pending", lambda v: f"{v:,}"), ("Clicks", "clicks", lambda v: f"{v:,}"),
+               ("Conversion rate", "cr", lambda v: f"{v:.2f}%"), ("EPC", "epc", money),
+               ("Margin", "margin", lambda v: f"{v:.1f}%")]
+    return grid("Yesterday vs 2 days ago", head,
+                [[name, fmt(t[k]), fmt(p[k]), delta(t[k], p[k])] for name, k, fmt in metrics])
+
+
+def breakdown(title, first_col, cur, prev):
+    """One row per publisher/offer with both days side by side."""
+    keys = {r["label"] for r in cur} | {r["label"] for r in prev}
+    c = {r["label"]: r for r in cur}
+    p = {r["label"]: r for r in prev}
+    empty = {"clicks": 0, "conversions": 0, "income": 0.0, "profit": 0.0}
+    rows = []
+    for k in sorted(keys, key=lambda k: (c.get(k, empty)["income"], p.get(k, empty)["income"]), reverse=True):
+        a, b = c.get(k, empty), p.get(k, empty)
+        rows.append([html.escape(k), f'{a["conversions"]:,}', f'{b["conversions"]:,}',
+                     money(a["income"]), money(b["income"]), delta(a["income"], b["income"]), money(a["profit"])])
+    if rows:
+        a, b = summarise(cur), summarise(prev)
+        rows.append(["Total", f'{a["conversions"]:,}', f'{b["conversions"]:,}', money(a["income"]),
+                     money(b["income"]), delta(a["income"], b["income"]), money(a["profit"])])
+    head = [first_col, "Conv. yesterday", "Conv. 2 days ago", "Income yesterday", "Income 2 days ago",
+            "Change", "Profit yesterday"]
+    return grid(title, head, rows, bold_last=bool(rows))
+
+
+def period_table(title, first_col, rows):
+    """One period: one row per publisher/offer, sorted by income, with a total row."""
+    out = []
+    for r in sorted(rows, key=lambda r: r["income"], reverse=True):
+        cr = r["conversions"] / r["clicks"] * 100 if r["clicks"] else 0
+        out.append([html.escape(r["label"]), f'{r["clicks"]:,}', f'{r["conversions"]:,}', f"{cr:.2f}%",
+                    money(r["income"]), money(r["payout"]), money(r["profit"])])
+    if out:
+        t = summarise(rows)
+        out.append(["Total", f'{t["clicks"]:,}', f'{t["conversions"]:,}', f'{t["cr"]:.2f}%',
+                    money(t["income"]), money(t["payout"]), money(t["profit"])])
+    return grid(title, [first_col, "Clicks", "Conv.", "CR", "Income", "Payout", "Profit"], out, bold_last=bool(out))
 
 
 def kpi(label, value, sub=""):
@@ -218,6 +264,8 @@ def render_html(day, data, demo=False):
     t = summarise(data["day_by_affiliate"])
     p = summarise(data["prev_by_affiliate"])
     m = summarise(data["mtd_by_day"])
+    lm = summarise(data["lastmonth_by_affiliate"])
+    lm_name = f'{day.replace(day=1) - dt.timedelta(days=1):%B %Y}'
     days_in_month = ((day.replace(day=28) + dt.timedelta(days=4)).replace(day=1) - dt.timedelta(days=1)).day
     forecast = m["income"] / day.day * days_in_month if day.day else 0
 
@@ -236,21 +284,30 @@ def render_html(day, data, demo=False):
 <body style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111827;max-width:820px;margin:0 auto;padding:24px">
 {banner}
 <h1 style="font-size:22px;margin:0">CPS Daily Revenue Report</h1>
-<p style="color:#6b7280;margin:4px 0 20px">{day.strftime('%A, %d %B %Y')} · Source: Affise</p>
+<p style="color:#6b7280;margin:4px 0 20px">Yesterday {day:%a %d %b %Y} vs 2 days ago {day - dt.timedelta(days=1):%a %d %b %Y} · Source: Affise</p>
 <table style="width:100%;border-spacing:8px;margin:0 -8px"><tr>
-{kpi("Income (yesterday)", money(t["income"]), delta(t["income"], p["income"]) + " vs prior day")}
-{kpi("Profit", money(t["profit"]), f'{t["margin"]:.1f}% margin')}
-{kpi("Conversions", f'{t["conversions"]:,}', f'{t["approved"]} approved · {t["pending"]} pending')}
-{kpi("Clicks", f'{t["clicks"]:,}', f'CR {t["cr"]:.2f}% · EPC {money(t["epc"])}')}
+{kpi("Income yesterday", money(t["income"]), delta(t["income"], p["income"]) + " vs 2 days ago")}
+{kpi("Income 2 days ago", money(p["income"]), f'{p["conversions"]:,} conversions')}
+{kpi("Profit yesterday", money(t["profit"]), delta(t["profit"], p["profit"]) + " vs 2 days ago")}
+{kpi("Conversions yesterday", f'{t["conversions"]:,}', delta(t["conversions"], p["conversions"]) + " vs 2 days ago")}
 </tr><tr>
-{kpi("Month-to-date income", money(m["income"]), f'{day.day} days')}
+{kpi("Month-to-date income", money(m["income"]), f'1–{day.day} {day:%b}, up to yesterday')}
 {kpi("Month-to-date profit", money(m["profit"]), f'{m["margin"]:.1f}% margin')}
 {kpi("Month forecast (income)", money(forecast), "run-rate")}
 {kpi("MTD conversions", f'{m["conversions"]:,}', f'{m["declined"]} declined')}
 </tr></table>
-{table("Last 3 days (yesterday and the 2 days before)", data["last3_by_day"], "Date", by_label=True, total=True)}
-{table("Revenue by publisher — yesterday", data["day_by_affiliate"], "Publisher")}
-{table("Revenue by offer — yesterday", data["day_by_offer"], "Offer")}
+{two_day_summary(day, t, p)}
+{breakdown("By publisher", "Publisher", data["day_by_affiliate"], data["prev_by_affiliate"])}
+{breakdown("By offer", "Offer", data["day_by_offer"], data["prev_by_offer"])}
+<h2 style="font-size:18px;margin:36px 0 4px;padding-top:16px;border-top:1px solid #e5e7eb">Last month — {lm_name}</h2>
+<table style="width:100%;border-spacing:8px;margin:0 -8px"><tr>
+{kpi("Income", money(lm["income"]), f'{lm["approved"]:,} approved · {lm["pending"]:,} pending')}
+{kpi("Payout", money(lm["payout"]), "publisher share")}
+{kpi("Profit", money(lm["profit"]), f'{lm["margin"]:.1f}% margin')}
+{kpi("Conversions", f'{lm["conversions"]:,}', f'{lm["clicks"]:,} clicks · CR {lm["cr"]:.2f}%')}
+</tr></table>
+{period_table(f"{lm_name} by publisher", "Publisher", data["lastmonth_by_affiliate"])}
+{period_table(f"{lm_name} by offer", "Offer", data["lastmonth_by_offer"])}
 <h2 style="font-size:16px;margin:28px 0 8px">Month-to-date daily income</h2>
 <table style="width:100%;border-collapse:collapse">{trend}</table>
 <p style="font-size:11px;color:#9ca3af;margin-top:28px">Income = amount networks pay us (Affise "charge"). Payout = publisher share
@@ -279,6 +336,8 @@ def main(argv):
     demo = "--demo" in argv
     args = [a for a in argv if not a.startswith("--")]
     day = dt.date.fromisoformat(args[0]) if args else dt.date.today() - dt.timedelta(days=1)
+    if day >= dt.date.today():
+        sys.exit("The report covers complete days only: pass yesterday or earlier.")
     if not demo and not API_KEY:
         sys.exit("Set AFFISE_API_KEY (Affise → Settings → Security → API key), or run with --demo.")
     data = demo_data(day) if demo else collect(day)
