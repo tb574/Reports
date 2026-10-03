@@ -385,6 +385,12 @@ def confidence(o, best):
 
 # --------------------------------------------------------------------------- test plan
 
+def only_aov_estimate(o):
+    """Everything is clear except that the order value is a public estimate: only a small test can verify it."""
+    return (o["status"] == "NEEDS REVIEW" and o["best"]["aov_estimated"]
+            and all(r.startswith("order value is a public estimate") for r in o["review"]))
+
+
 def test_plan(o, cfg):
     """Budget = enough clicks to expect 3 conversions at break-even CR (= about 3 payouts), capped by the max budget.
 
@@ -428,6 +434,9 @@ def test_plan(o, cfg):
     if capped:
         risk.append(f"budget capped at {money(cfg.max_budget, cur)}: only ~{expected:.1f} conversions expected at "
                     "break-even, so a 0 result is a weaker signal")
+    if o["best"]["aov_estimated"]:
+        risk.insert(0, f"order value {money(o['best']['aov'], cur)} is a public estimate: if real orders are smaller, "
+                       "break-even CR is higher. This test verifies it")
     if not risk:
         risk.append("real CR is unknown until tested; brand CPC can rise once we bid")
     return {
@@ -696,7 +705,7 @@ def test_cards(picks, cfg):
     for i, (o, p) in enumerate(picks, 1):
         cur = o["best"]["currency"]
         cards.append(f"""<div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin:0 0 14px">
-<div style="font-size:15px;font-weight:600">Test {i}: {e(o['brand'])} · {e(o['geo'])} · via {e(source_label(o['best']))}
+<div style="font-size:15px;font-weight:600">{"Verification test" if o["best"]["aov_estimated"] else "Test"} {i}: {e(o['brand'])} · {e(o['geo'])} · via {e(source_label(o['best']))}
 <span style="float:right">score {o['score']} {badge(o['confidence'])}</span></div>
 <table style="font-size:13px;margin-top:8px;border-collapse:collapse;width:100%">
 <tr><td style="padding:3px 12px 3px 0;color:#6b7280;width:190px">Why it is interesting</td><td>{e(p['why'])}</td></tr>
@@ -869,7 +878,7 @@ def main(argv):
     unknown_sv = [o for o in all_offers if o["qualified"] is None]
     top = sorted([o for o in offers if o["status"] != "DO NOT TEST"], key=lambda o: -o["score"])[:10]
     picks = [(o, test_plan(o, cfg)) for o in top
-             if o["status"] == "READY TO TEST" and o["score"] >= cfg.min_score][:cfg.max_tests]
+             if (o["status"] == "READY TO TEST" or only_aov_estimate(o)) and o["score"] >= cfg.min_score][:cfg.max_tests]
     done, lessons = learnings(tests)
 
     os.makedirs(OUT_DIR, exist_ok=True)
