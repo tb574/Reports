@@ -13,14 +13,14 @@ Rank,Brand,Market,Source,Searches/mo,CPC $,Earn per sale,Payout basis,Conversion
 12,ZipRecruiter,US,Intango,823000,1.11,$105.00,fixed $105 (lowest listed),5.29%,,$105,95,High fixed payout.,Payout is most likely for employers; most searchers are job seekers.
 13,Kampgrounds of America (KOA),US,Shopnomix,201000,0.16,$15.00,fixed 15 (currency not stated),5.33%,,$15,94,"Cheap clicks, campsite bookings.",Currency of the payout not stated.
 14,Free Mobile,FR,digidip,2240000,0.26,$24.08,€21.45 average actually paid (digidip observed),5.40%,,$24,93,"2.2M searches, real observed payout.",Existing customers dominate searches.
-15,Coolblue,DE,digidip,201000,0.08,—,9% (digidip observed rate),needs order value,$148,after order value is known,,Electronics retailer: big baskets × 9% against $0.08 clicks.,Order value not verified.
-16,Eventim,DE,digidip,1830000,0.07,—,25% (digidip observed rate),needs order value,$47,after order value is known,,"1.8M searches, $0.07 clicks, high observed rate on tickets.",25% is unusually high; confirm it is % of the ticket price.
+15,Coolblue,DE,digidip,201000,0.08,—,9% (digidip observed rate) → 6.3% to us after digidip's 30% share,needs order value,$212,after order value is known,,Electronics retailer: big baskets × 9% against $0.08 clicks.,Order value not verified.
+16,Eventim,DE,digidip,1830000,0.07,—,25% (digidip observed rate) → 17.5% to us after digidip's 30% share,needs order value,$67,after order value is known,,"1.8M searches, $0.07 clicks, high observed rate on tickets.",25% is unusually high; confirm it is % of the ticket price.
 17,OBI,DE,Intango,1500000,0.04,—,10% (listed),needs order value,$67,after order value is known,,"DIY store, 1.5M searches, $0.04 clicks.",Order value not verified; Intango rate basis to confirm.
 18,Temu,FR,pickalink,3350000,0.08,—,23.3% (listed),needs order value,$57,after order value is known,,"Huge volume, cheap clicks, very high rate.",Temu usually pays new users only; order value not verified.
 19,Temu,DE,pickalink,3350000,0.1,—,23.3% (listed),needs order value,$72,after order value is known,,Same as Temu FR.,Same as Temu FR.
 20,Build-A-Bear,US,Intango,823000,0.04,—,10% (listed),needs order value,$67,after order value is known,,"$0.04 clicks, gift purchases.",Order value not verified.
 21,toom Baumarkt,DE,Intango,550000,0.07,—,12% (listed),needs order value,$97,after order value is known,,"DIY store, cheap clicks, high rate.",Order value not verified.
-22,Groupon,FR,digidip,301000,0.04,—,7% (digidip observed rate),needs order value,$95,after order value is known,,$0.04 clicks.,Small baskets.
+22,Groupon,FR,digidip,301000,0.04,—,7% (digidip observed rate) → 4.9% to us after digidip's 30% share,needs order value,$136,after order value is known,,$0.04 clicks.,Small baskets.
 23,DJI,US,Impact (CyberKick),246000,0.53,$37.50,5% default × ~$750 (public estimate),7.07%,,$38,71,Drones are expensive; 5% default rate in the contract.,Some product lists pay 0–2%; order value estimated.
 24,Home Depot,US,Mony Group,30400000,0.14,$10.02,3.2% × ~$313 (public estimate),6.99%,,$10,72,30M searches at $0.14 per click.,"digidip's real data shows only ~€4.83 per sale, which would need ~13% conversion."
 25,The Times,GB,digidip,301000,0.31,$21.46,€19 average actually paid (digidip observed),7.22%,,$22,70,Subscription payout observed.,"Mostly readers, not buyers."
@@ -55,8 +55,8 @@ Rank,Brand,Market,Source,Searches/mo,CPC $,Earn per sale,Payout basis,Conversion
 54,Galeria,DE,Intango,201000,0.1,—,8% (listed),needs order value,$208,after order value is known,,"Department store, cheap clicks.",Order value not verified.
 55,Sally Beauty,US,Shopnomix,2240000,0.11,—,8% (listed),needs order value,$229,after order value is known,,"2.2M searches, cheap clicks.",Order value not verified.
 56,Woot,US,Intango,246000,0.09,—,7% (listed),needs order value,$214,after order value is known,,Cheap clicks.,Order value not verified.
-57,Fielmann,DE,digidip,823000,0.18,—,8% (digidip observed rate),needs order value,$375,after order value is known,,Eyewear: high baskets.,Many searches are for stores/appointments.
+57,Fielmann,DE,digidip,823000,0.18,—,8% (digidip observed rate) → 5.6% to us after digidip's 30% share,needs order value,$536,after order value is known,,Eyewear: high baskets.,Many searches are for stores/appointments.
 58,MediaMarkt,DE,Intango,4090000,0.07,—,3% (listed),needs order value,$389,after order value is known,,"4M searches, big electronics baskets.",Low rate.
 59,eBay,US,digidip,24900000,2.03,$550.00,fixed up to $550 (top listed tier) — base is 3%,1.85%,,$300,147,Huge volume.,The $550 is a special bounty; normal payout is ~3% of sale. Expensive clicks.
-60,Hugendubel,DE,digidip,450000,0.09,—,10% (digidip observed rate),needs order value,$150,after order value is known,,"Books, cheap clicks.",Small baskets.
+60,Hugendubel,DE,digidip,450000,0.09,—,10% (digidip observed rate) → 7% to us after digidip's 30% share,needs order value,$214,after order value is known,,"Books, cheap clicks.",Small baskets.
 61,Groupon,US,Intango,1500000,0.06,—,4.5–10% (listed),needs order value,$222,after order value is known,,Cheap clicks.,Small baskets.
