@@ -1,0 +1,12 @@
+rank,brand,network,geo,search_volume,cpc_usd,earn_per_sale_usd,break_even_cr_pct,test_budget_usd,max_clicks,payout_basis,confidence
+1,waipu.tv,digidip,DE,450000,0.09,39.29,0.23,118,1310,"published fixed up to EUR 35",MEDIUM (max tier)
+2,sky.de,digidip,DE,450000,0.06,22.45,0.27,67,1123,"digidip observed average per sale",MEDIUM
+3,1&1,digidip,DE,450000,0.29,89.80,0.32,269,929,"published fixed up to EUR 80",MEDIUM (max tier)
+4,Ulys,digidip,FR,301000,0.03,10.10,0.30,30,1011,"published fixed EUR 9",HIGH
+5,Virgin Voyages,Impact NYJL,US,368000,0.90,240.00,0.38,300,333,"12% x estimated ~$2000 cabin",LOW (order value estimate)
+6,Freebox,digidip,FR,823000,0.45,57.02,0.79,171,381,"digidip observed average per sale",MEDIUM
+7,Free Mobile,digidip,FR,2240000,0.26,24.08,1.08,72,278,"digidip observed average per sale",MEDIUM
+8,DJI,Impact CyberKick,US,246000,0.53,37.50,1.41,113,213,"5% default x estimated ~$750",MEDIUM
+9,Vrbo,CJ NYJL,US,2740000,0.43,27.52,1.56,83,192,"2% x estimated ~$1376 booking",LOW
+10,The Times,digidip,GB,301000,0.31,21.46,1.44,64,208,"digidip observed average per sale",MEDIUM
+11,Sling TV,Cactus Media,US,823000,0.60,30.00,2.00,90,150,"fixed USD 30 per lead",HIGH (lead definition to confirm)
