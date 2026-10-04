@@ -68,13 +68,16 @@ R=[
 assert len(R)==61, len(R)
 rows=[]
 for i,(b,g,src,sv,cpc,kind,val,basis,why,risk) in enumerate(R,1):
+    BULLS=0.65  # Bulls is paid 35% of every payout: we keep 65%
     if kind=="F":
+        basis=f"{basis}; ${val:,.2f} payout → ${val*BULLS:,.2f} kept after Bulls 35%"; val=val*BULLS
         be=cpc/val; cr5=5*be; clicks=math.ceil(1/be); bud=min(clicks*cpc,300)
         if clicks*cpc>300: clicks=math.floor(300/cpc)
-        rows.append([i,b,g,src,sv,cpc,f"${val:,.2f}",basis,f"{cr5*100:.2f}%","",f"${bud:,.0f}",clicks,why,risk])
+        rows.append([i,b,g,src,sv,cpc,f"${val:,.2f} kept",basis,f"{cr5*100:.2f}%","",f"${bud:,.0f}",clicks,why,risk])
     else:
         if src=="digidip":  # digidip keeps 30% on % offers: we receive 70% of the listed rate (flat payouts are not reduced)
             basis=f"{basis} → {val*0.7:g}% to us after digidip's 30% share"; val=val*0.7
+        basis=f"{basis} → {val*BULLS:.2f}% kept after Bulls 35%"; val=val*BULLS
         need=5*cpc/(0.03*val/100)
         rows.append([i,b,g,src,sv,cpc,"—",basis,"needs order value",f"${need:,.0f}","after order value is known","",why,risk])
 hdr=["Rank","Brand","Market","Source","Searches/mo","CPC $","Earn per sale","Payout basis","Conversion needed for 5x ROAS","Order value needed for 5x at 3% conversion","Test budget","Max clicks","Why chosen","Main risk"]
@@ -98,7 +101,7 @@ gambling/adult/financial products (Google Ads restrictions) and offers whose % l
 <b>order value needed</b> for 5x if 3% of clicks buy.<br>
 <b>Test budget:</b> enough clicks to expect 5 sales if the offer really converts at the 5x level (≈ one payout), capped at $300.
 If it gets 0 sales by half the clicks, pause: an offer that truly converts at the 5x level gets 0 sales in that window only ~8% of the time.<br>
-<b>digidip:</b> on % offers digidip keeps 30%, so the rate used is 70% of the listed rate; flat payouts are used in full.<br><b>Scale only if:</b> ROAS ≥ 5x with at least 3 confirmed sales. EUR→USD at 1.1225 (ECB, 2 Oct 2026). Nothing here has been launched.</p>
+<b>Bulls share:</b> every payout is reduced by the 35% paid to Bulls; all numbers below use what you keep (65%). 5x ROAS is measured on that kept amount.<br><b>digidip:</b> on % offers digidip keeps 30%, so the rate used is 70% of the listed rate; flat payouts are used in full.<br><b>Scale only if:</b> ROAS ≥ 5x with at least 3 confirmed sales. EUR→USD at 1.1225 (ECB, 2 Oct 2026). Nothing here has been launched.</p>
 <h2>Test now (1–11)</h2><table><tr>{th}</tr>{''.join(tr(r,True) for r in rows[:11])}</table>
 <h2>Queue (12–61), in order</h2><table><tr>{th}</tr>{''.join(tr(r,False) for r in rows[11:])}</table>
 <p class="note"><b>Honest read on 5x:</b> only about 10 offers need ≤5% conversion to hit 5x ROAS. From roughly #36 onward, the required conversion rate is above 10%,
