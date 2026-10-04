@@ -1,0 +1,49 @@
+brand,network,account,offer_id,geo,search_volume,cpc_usd,payout_type,payout_value,payout_currency,payout_text,in_affise
+virgin voyages,Impact,NYJL,45098,US,368000,0.90,CPS,12%,USD,"12% per online booking",No
+dji,Impact,CyberKick,40334,US,246000,0.53,CPS,5%,USD,"Default 5%; product lists 0%-8%",No
+vrbo,CJ,NYJL,2691607,US,2740000,0.43,CPS,2%,USD,"2% per booking",No
+lenovo india,Impact,NYJL,9634,IN,450000,0.09,CPS,4%,INR,"Default 4%; tablets 8%",No
+sling tv,Cactus Media,NYJL,145458,US,823000,0.60,CPL,30,USD,"USD 30 lead",No
+hulu,Cactus Media,NYJL,145455,US,4090000,3.12,CPL,12,USD,"USD 12 lead",No
+peacock,Cactus Media,NYJL,145457,US,5000000,0.24,CPL,3,USD,"USD 3 lead",No
+sams club,Cactus Media,NYJL,145456,US,550000,0.40,CPL,10,USD,"USD 10 lead (FlexOffers alternative: 12% of memberships, 1.6% of sales)",No
+visible,FlexOffers,Sortiga,75753,US,301000,2.53,CPA,58,USD,"$58 per activation",No
+total wireless,FlexOffers,Sortiga,75787,US,550000,1.77,CPA,45,USD,"$45 per activation",No
+straight talk,FlexOffers,Sortiga,75720,US,1220000,1.18,CPA,9.60,USD,"$9.60 per activation",No
+mint mobile,FlexOffers,Sortiga,75744,US,823000,3.38,CPA,1.60,USD,"$1.60 per online sale",No
+fubotv,FlexOffers,Sortiga,75735,US,1500000,0.57,CPA,,USD,"$0.80-$24 depending on subscription; trials excluded",No
+cheapoair,FlexOffers,Sortiga,75715,US,673000,1.04,CPA,,USD,"$4-$20 depending on booking type",No
+apmex,FlexOffers,Sortiga,75819,US,450000,0.96,CPA,,USD,"$4-$28 per sale",No
+walmart,Mony Group,NYJL brand rates,145410,US,55600000,0.09,CPS,4%,USD,"4% most general merchandise; 3.2% electronics; 0.8% personal care/other; 0% excluded categories",Walmart-CA only (different country)
+home depot,Mony Group,NYJL brand rates,145409,US,30400000,0.14,CPS,3.2%,USD,"6.4% decor/rugs/furniture; 3.2% most categories; 1.6% appliances",No
+walgreens,Mony Group,NYJL brand rates,145412,US,20400000,0.28,CPS,6.4%,USD,"6.4% all listed categories",No
+old navy,Mony Group,NYJL brand rates,145414,US,9140000,0.15,CPS,4%,USD,"4%",No
+gap,Mony Group,NYJL brand rates,145413,US,2240000,0.20,CPS,4%,USD,"4%",No
+banana republic,Mony Group,NYJL brand rates,145415,US,1500000,0.41,CPS,0.8%,USD,"0.8% sale items; 1.6% other",No
+express,FlexOffers,Sortiga,75725,US,823000,0.28,CPS,4%,USD,"4% online and in-store (Mony: 0.8%)",No
+garmin,Mony Group,NYJL brand rates,145420,US,450000,1.14,CPS,6.4%,USD,"6.4%",No
+office depot,Mony Group,NYJL brand rates,145418,US,2740000,0.15,CPS,2.4%,USD,"4% office supplies; 3.2% breakroom; 2.4% furniture/paper/print; 0.4% computers/electronics",No
+sportsmans warehouse,Mony Group,NYJL brand rates,145425,US,1220000,0.15,CPS,2.4%,USD,"2.4%",No
+petsmart,Mony Group,NYJL brand rates,145421,US,6120000,0.47,CPS,1.6%,USD,"1.6%",No
+petco,Mony Group,NYJL brand rates,145431,US,4090000,0.27,CPS,1.2%,USD,"1.2%",No
+stubhub,FlexOffers,Sortiga,75716,US,1830000,1.82,CPS,5%,USD,"5%",No
+uniqlo,FlexOffers,Sortiga,75739,US,1830000,0.22,CPS,2.4%,USD,"2.4%",No
+vans,FlexOffers,Sortiga,75732,US,1500000,0.39,CPS,4.8%,USD,"4.8% (1.6% select referral IDs)",No
+samsung,FlexOffers,Sortiga,75721,US,1220000,2.29,CPS,1.6%,USD,"1.6%",No
+total wine,FlexOffers,Sortiga,75761,US,1220000,0.33,CPS,3.2%,USD,"3.2%",No
+athleta,FlexOffers,Sortiga,75729,US,823000,0.39,CPS,5%,USD,"5%",No
+stanley,FlexOffers,Sortiga,75760,US,823000,0.27,CPS,0.8%,USD,"0.8%",No
+steve madden,FlexOffers,Sortiga,75731,US,823000,0.39,CPS,5%,USD,"5%",No
+marc jacobs,FlexOffers,Sortiga,75749,US,450000,0.71,CPS,8%,USD,"8%",No
+west marine,FlexOffers,Sortiga,75784,US,368000,0.38,CPS,6%,USD,"6% online",No
+dickies,FlexOffers,Sortiga,75774,US,301000,0.86,CPS,3.2%,USD,"3.2% online",No
+bubble,FlexOffers,Sortiga,75768,US,301000,1.30,CPS,28%,USD,"28% of subscriptions",No
+quillbot,FlexOffers,Sortiga,75775,US,823000,0.39,CPS,8%,USD,"8%-16% depending on plan",No
+singapore airlines,FlexOffers,Sortiga,75791,US,246000,0.63,CPS,0.8%,USD,"0.8%",No
+shein,FlexOffers,Sortiga,75799,FR,3350000,0.14,CPS,12%,USD,"12% new customers; 0.8% existing",No
+shein,FlexOffers,Sortiga,75798,GB,2740000,0.99,CPS,12%,USD,"12% new customers; 0.8% existing",No
+best buy,FlexOffers,Sortiga,75740,CA,3350000,0.67,CPS,0.8%,USD,"0.8% select purchases",BestBuy-US only (different country)
+malwarebytes,Partnerize,Sortiga,1846,US,246000,1.42,CPS,30%,USD,"30%",No
+discovercars,Admitad,NYJL,2328,US,550000,1.58,CPS,1.93%,USD,"1.93%-4.5%",No
+etihad,Admitad,NYJL,2345,US,201000,0.73,CPS,1.08%,USD,"1.08%",No
+popmart,Mony Group,NYJL brand rates,145426,US,823000,0.35,CPS,3.2%,USD,"3.2%-5.6% by SKU",No
