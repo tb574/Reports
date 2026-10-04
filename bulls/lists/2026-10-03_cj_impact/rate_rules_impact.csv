@@ -1,0 +1,22 @@
+keyword,rate_used,rule_summary,source
+airalo,10%,"Default 10%; 15% for NEW customers",Impact contract via Supabase raw_snapshots
+brandsmart,1%,"Default 0%; by category 1-5%; Apple 0%",Impact contract via Supabase raw_snapshots
+capcut,60%,"Online sale: 60% NEW customers US/UK/FR/DE, 50% existing; installs paid separately",Impact contract via Supabase raw_snapshots
+casetify,5%,"Default 5%; 3%/1%/0% only with specific promo codes",Impact contract via Supabase raw_snapshots
+coursera,45%,"Subscription default 45% (one SKU list 15%); one-time course 20%, specialization prepaid 45%",Impact contract via Supabase raw_snapshots
+cricut,4%,"Default 4% (machines 4%); accessories/materials 10%; up to 12% some categories; mystery box 0%",Impact contract via Supabase raw_snapshots
+dhgate,2%,"Default 2%; 2%-50% by item category",Impact contract via Supabase raw_snapshots
+dji,5%,"Default 5%; product lists at 0%, 0.5%, 2%, 5%, 8%",Impact contract via Supabase raw_snapshots
+fabletics,20%,"VIP: 20% NEW customers, 7.5% existing, default 15%",Impact contract via Supabase raw_snapshots
+hostinger,40%,"Default 40%; 60% only Horizons SKUs; max payout USD 300 per order",Impact contract via Supabase raw_snapshots
+hubspot,30%,"30% initial monthly/annual and recurring",Impact contract via Supabase raw_snapshots
+humble bundle,8%,"Default 8% (bundles 8%); storefront 4%",Impact contract via Supabase raw_snapshots
+lenovo,4%,"Default 4%; tablets 8%",Impact contract via Supabase raw_snapshots
+nordvpn,40%,"New customer 40%; NordPass 30%",Impact contract via Supabase raw_snapshots
+pop mart,4%,"Default 0%; only SKU lists pay 4%-7%",Impact contract via Supabase raw_snapshots
+postermywall,20%,"Default 0%; 20% NEW customers",Impact contract via Supabase raw_snapshots
+ring doorbell,10%,"Default 10%; one SKU list 0%",Impact contract via Supabase raw_snapshots
+udemy,20%,"Course purchase 20%; subscriptions 10%-20%; trials 0%",Impact contract via Supabase raw_snapshots
+upwork,70%,"70% NEW client start, max USD 150; existing 0%",Impact contract via Supabase raw_snapshots
+virgin voyages,12%,"Online booking 12%",Impact contract via Supabase raw_snapshots
+vivid seats,6%,"6% per sale",Impact contract via Supabase raw_snapshots
