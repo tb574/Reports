@@ -2,3 +2,4 @@ network,applies_to,our_share_pct,rule,source,date_recorded
 digidip,percentage (CPS) offers,70,"digidip keeps 30% of the listed % rate; use 70% of the rate shown",Confirmed by Tali,2026-10-04
 digidip,flat / fixed payouts,100,"flat amounts are paid in full, no deduction",Confirmed by Tali,2026-10-04
 Bulls,all offers (every payout),65,"Bulls is paid 35% of every payout; we keep 65% (applied after any network share)",Confirmed by Tali,2026-10-04
+Intango,all offers,80,"Intango pays the publisher 80% of the full payout (e.g. NCL $150 -> $120)",Confirmed by Tali,2026-10-05
