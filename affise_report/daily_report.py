@@ -29,6 +29,14 @@ CURRENCY = os.environ.get("REPORT_CURRENCY", "USD")
 # An offer counts as a running campaign for a publisher on a date only with at least this many clicks
 # that day; below it the clicks are stray/test traffic (real campaigns get hundreds, strays 1-10).
 MIN_CAMPAIGN_CLICKS = int(os.environ.get("MIN_CAMPAIGN_CLICKS", "50"))
+# Network per offer, from the prefix of its Affise external offer ID (matches the title code,
+# e.g. Swimply-US-DD <-> dd_...). Longest prefix wins. Codes not yet named show as the code itself.
+NETWORKS = {
+    "dd_": "digidip", "imp_ny_": "Impact (NYJL)", "imp_ck_": "Impact (CyberKick)", "imp_jz_": "Impact (JZ)",
+    "fx_": "FlexOffers", "mr": "Moonrover", "fs_": "Flickstree", "aw_": "Awin", "cj_": "CJ",
+    "adt_": "Admitad", "dir_": "Direct", "pal_": "PickaLink", "pkl_": "PickaLink",
+    "mf_": "MF", "mny_": "MNY", "sx_": "SX", "shx_": "SHX",
+}
 OUT_DIR = os.environ.get("REPORT_OUT_DIR", os.path.join(os.path.dirname(__file__), "output"))
 
 
@@ -84,6 +92,7 @@ def normalise(row, slice_by):
     """
     sl = row.get("slice", {})
     label = sl.get(slice_by)
+    ext_id = label.get("external_offer_id") if slice_by == "offer" and isinstance(label, dict) else None
     if slice_by == "day" and "year" in sl and "month" in sl:
         label = dt.date(int(sl["year"]), int(sl["month"]), int(sl["day"])).isoformat()
     elif isinstance(label, dict):
@@ -112,7 +121,14 @@ def normalise(row, slice_by):
         "profit": income - payout,
         "approved_income": num(confirmed.get("charge")),
         "pending_income": num(pending.get("charge")),
+        "network": network_of(ext_id) if slice_by == "offer" else None,
     }
+
+
+def network_of(ext_id):
+    ext_id = (ext_id or "").lower()
+    match = max((k for k in NETWORKS if ext_id.startswith(k)), key=len, default=None)
+    return NETWORKS[match] if match else "Unknown"
 
 
 def summarise(rows):
@@ -139,6 +155,7 @@ def collect(day):
         "lastmonth_by_affiliate": (lm_start, lm_end, "affiliate"),
         "lastmonth_by_offer": (lm_start, lm_end, "offer"),
         "mtd_by_day": (month_start, day, "day"),
+        "mtd_by_offer": (month_start, day, "offer"),
     }.items():
         data[key] = [normalise(r, slice_by) for r in fetch_stats(slice_by, a, b)]
     # Campaigns: stats split by date, publisher and offer (Statistics -> Offers per date and affiliate).
@@ -196,7 +213,7 @@ def demo_data(day):
 
     def mk(label, clicks, conv, inc, pay, scale=1.0):
         c = int(conv * scale)
-        return {"label": label, "clicks": int(clicks * scale), "unique_clicks": int(clicks * scale * .86),
+        return {"label": label, "network": label.split("-")[-1] if "-" in label else None, "clicks": int(clicks * scale), "unique_clicks": int(clicks * scale * .86),
                 "conversions": c, "approved": int(c * .6), "pending": c - int(c * .6) - int(c * .05),
                 "declined": int(c * .05), "income": inc * scale, "payout": pay * scale,
                 "profit": (inc - pay) * scale, "approved_income": inc * scale * .6,
@@ -214,6 +231,7 @@ def demo_data(day):
         "prev_by_offer": [mk(*o, scale=0.91) for o in offers],
         "lastmonth_by_affiliate": [mk(*p, scale=29.4) for p in pubs],
         "lastmonth_by_offer": [mk(*o, scale=30.2) for o in offers],
+        "mtd_by_offer": [mk(*o, scale=day.day) for o in offers],
         "mtd_by_day": mtd,
         "day_campaigns": {p[0]: 4 for p in pubs},
         "prev_campaigns": {p[0]: 3 for p in pubs},
@@ -322,6 +340,36 @@ def period_table(title, first_col, rows, campaigns=None, converted_only=False):
     return grid(title, head, out, bold_last=bool(out))
 
 
+def network_table(title, day, data, lm_name):
+    """Income per network: yesterday, 2 days ago, month to date and last month."""
+    cols = ["day_by_offer", "prev_by_offer", "mtd_by_offer", "lastmonth_by_offer"]
+    nets = {}
+    for i, key in enumerate(cols):
+        for r in data[key]:
+            nets.setdefault(r["network"] or "Unknown", [0.0] * len(cols))[i] += r["income"]
+    out = [[html.escape(n), money(v[0]), money(v[1]), delta(v[0], v[1]), money(v[2]), money(v[3])]
+           for n, v in sorted(nets.items(), key=lambda kv: (kv[1][2], kv[1][3]), reverse=True) if any(v)]
+    if out:
+        t = [sum(r["income"] for r in data[k]) for k in cols]
+        out.append(["Total", money(t[0]), money(t[1]), delta(t[0], t[1]), money(t[2]), money(t[3])])
+    head = ["Network", "Income yesterday", "Income 2 days ago", "Change", f"Month to date ({day:%b})",
+            f"Last month ({lm_name.split()[0][:3]})"]
+    return grid(title, head, out, bold_last=bool(out))
+
+
+def top_offers(title, rows, n=10):
+    """Top n offers by income, with network, conversions, income and profit."""
+    top = sorted((r for r in rows if r["income"] > 0), key=lambda r: r["income"], reverse=True)[:n]
+    out = [[str(i), html.escape(r["label"]), html.escape(r["network"] or ""), f'{r["conversions"]:,}',
+            money(r["income"]), money(r["profit"])] for i, r in enumerate(top, 1)]
+    if out:
+        t, a = summarise(top), summarise(rows)
+        share = t["income"] / a["income"] * 100 if a["income"] else 0
+        out.append(["", f"Top {len(top)} total ({share:.0f}% of income)", "", f'{t["conversions"]:,}',
+                    money(t["income"]), money(t["profit"])])
+    return grid(title, ["#", "Offer", "Network", "Conv.", "Income", "Profit"], out, bold_last=bool(out))
+
+
 def kpi(label, value, sub=""):
     return (f'<td style="padding:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;width:25%">'
             f'<div style="font-size:12px;color:#6b7280">{label}</div>'
@@ -370,6 +418,7 @@ def render_html(day, data, demo=False):
            campaigns=(data["day_campaigns"], data["prev_campaigns"]))}
 {breakdown("By offer (offers with conversions)", "Offer", data["day_by_offer"], data["prev_by_offer"],
            converted_only=True)}
+{network_table("Income by network", day, data, lm_name)}
 <h2 style="font-size:18px;margin:36px 0 4px;padding-top:16px;border-top:1px solid #e5e7eb">Last month — {lm_name}</h2>
 <table style="width:100%;border-spacing:8px;margin:0 -8px"><tr>
 {kpi("Income", money(lm["income"]), f'{lm["approved"]:,} approved · {lm["pending"]:,} pending')}
@@ -379,8 +428,7 @@ def render_html(day, data, demo=False):
 </tr></table>
 {period_table(f"{lm_name} by publisher", "Publisher", data["lastmonth_by_affiliate"],
               campaigns=data["lastmonth_campaigns"])}
-{period_table(f"{lm_name} by offer (offers with conversions)", "Offer", data["lastmonth_by_offer"],
-              converted_only=True)}
+{top_offers(f"{lm_name}: top 10 offers by income", data["lastmonth_by_offer"])}
 <h2 style="font-size:16px;margin:28px 0 8px">Month-to-date daily income</h2>
 <table style="width:100%;border-collapse:collapse">{trend}</table>
 <p style="font-size:11px;color:#9ca3af;margin-top:28px">Income = amount networks pay us (Affise "charge"). Payout = publisher share
