@@ -26,6 +26,9 @@ import urllib.request
 API_URL = os.environ.get("AFFISE_API_URL", "https://api-nyjltb.affise.com")
 API_KEY = os.environ.get("AFFISE_API_KEY", "")
 CURRENCY = os.environ.get("REPORT_CURRENCY", "USD")
+# An offer counts as a running campaign for a publisher on a date only with at least this many clicks
+# that day; below it the clicks are stray/test traffic (real campaigns get hundreds, strays 1-10).
+MIN_CAMPAIGN_CLICKS = int(os.environ.get("MIN_CAMPAIGN_CLICKS", "50"))
 OUT_DIR = os.environ.get("REPORT_OUT_DIR", os.path.join(os.path.dirname(__file__), "output"))
 
 
@@ -41,8 +44,9 @@ def affise_get(path, params):
 def fetch_stats(slice_by, date_from, date_to):
     """GET /3.0/stats/custom sliced by one dimension (or a list of them), all pages."""
     # A bare "day" slice only returns the day of the month, so add year and month to get a full date.
-    slices = ["year", "month", "day"] if slice_by == "day" else (
-        list(slice_by) if isinstance(slice_by, (list, tuple)) else [slice_by])
+    slices = list(slice_by) if isinstance(slice_by, (list, tuple)) else [slice_by]
+    if "day" in slices:
+        slices = ["year", "month"] + slices
     # No currency filter: unfiltered, Affise converts every conversion into the account currency (USD).
     # Filtering by currency drops clicks and every conversion in other currencies (e.g. EUR offers).
     rows, page = [], 1
@@ -137,20 +141,49 @@ def collect(day):
         "mtd_by_day": (month_start, day, "day"),
     }.items():
         data[key] = [normalise(r, slice_by) for r in fetch_stats(slice_by, a, b)]
-    for key, (a, b) in {"day_campaigns": (day, day), "prev_campaigns": (prev, prev),
-                        "lastmonth_campaigns": (lm_start, lm_end)}.items():
-        data[key] = count_campaigns(fetch_stats(["affiliate", "offer"], a, b))
+    # Campaigns: stats split by date, publisher and offer (Statistics -> Offers per date and affiliate).
+    rows = [(normalise(r, "day")["label"], normalise(r, "affiliate")["label"], normalise(r, "offer"))
+            for r in fetch_stats(["day", "affiliate", "offer"], lm_start, day)]
+    in_range = lambda a, b: [x for x in rows if a.isoformat() <= x[0] <= b.isoformat()]
+    data["day_campaigns"] = count_campaigns(in_range(day, day))
+    data["prev_campaigns"] = count_campaigns(in_range(prev, prev))
+    data["lastmonth_campaigns"] = count_campaigns(in_range(lm_start, lm_end))
+    data["campaigns_check"] = reconcile(in_range(prev, day), {day.isoformat(): data["day_by_affiliate"],
+                                                             prev.isoformat(): data["prev_by_affiliate"]})
     return data
 
 
 def count_campaigns(rows):
-    """Campaigns per publisher: the offers that publisher sent at least one click to."""
+    """Campaigns per publisher: distinct offers with >= MIN_CAMPAIGN_CLICKS clicks on a date.
+
+    rows are (date, publisher, offer-row) tuples; over several dates an offer counts once
+    if it ran on any of them.
+    """
     counts = {}
-    for r in rows:
-        pub, offer = normalise(r, "affiliate"), normalise(r, "offer")
-        if offer["clicks"] > 0:
-            counts.setdefault(pub["label"], set()).add(offer["label"])
+    for _, pub, offer in rows:
+        if offer["clicks"] >= MIN_CAMPAIGN_CLICKS:
+            counts.setdefault(pub, set()).add(offer["label"])
     return {pub: len(offers) for pub, offers in counts.items()}
+
+
+def reconcile(rows, totals_by_date):
+    """Check the date/publisher/offer rows add up to each publisher's daily totals.
+
+    Returns a list of mismatches (empty when everything matches).
+    """
+    sums = {}
+    for d, pub, o in rows:
+        s = sums.setdefault((d, pub), [0, 0, 0.0])
+        s[0] += o["clicks"]; s[1] += o["conversions"]; s[2] += o["income"]
+    bad = []
+    for d, pubs in totals_by_date.items():
+        for p in pubs:
+            s = sums.get((d, p["label"]), [0, 0, 0.0])
+            if (s[0], s[1]) != (p["clicks"], p["conversions"]) or abs(s[2] - p["income"]) > 0.05:
+                bad.append(f'{d} {p["label"]}')
+    if bad:
+        print("WARNING: campaign rows do not match publisher totals for: " + ", ".join(bad), file=sys.stderr)
+    return bad
 
 
 # -------------------------------------------------------------------------- demo
@@ -185,6 +218,7 @@ def demo_data(day):
         "day_campaigns": {p[0]: 4 for p in pubs},
         "prev_campaigns": {p[0]: 3 for p in pubs},
         "lastmonth_campaigns": {p[0]: 9 for p in pubs},
+        "campaigns_check": [],
     }
 
 
@@ -351,7 +385,10 @@ def render_html(day, data, demo=False):
 <table style="width:100%;border-collapse:collapse">{trend}</table>
 <p style="font-size:11px;color:#9ca3af;margin-top:28px">Income = amount networks pay us (Affise "charge"). Payout = publisher share
 (Affise "revenue"). Profit = Income − Payout. Includes pending conversions, which may still be declined by the network.
-Campaigns = offers a publisher sent at least one click to that day (or month). Offer tables list only offers with conversions; totals include all offers.</p>
+Campaigns = offers a publisher ran that day: at least {MIN_CAMPAIGN_CLICKS} clicks on that date, from Affise
+stats by date, offer and publisher{" (checked against publisher totals)" if not data.get("campaigns_check") else
+" — WARNING: did not match publisher totals for " + ", ".join(data["campaigns_check"])}; for last month,
+offers that ran on at least one day. Offer tables list only offers with conversions; totals include all offers.</p>
 </body></html>"""
 
 

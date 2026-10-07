@@ -5,7 +5,7 @@ Builds a daily report of CPS revenue for management from the Affise Admin API
 
 ## What it shows
 - Yesterday vs 2 days ago, side by side: income, payout, profit, margin, conversions (approved and pending), clicks, CR and EPC, with the % change
-- Both days broken down by publisher and by offer. The publisher table shows how many campaigns each publisher ran: the offers it sent at least one click to that day (from Affise stats sliced by publisher and offer)
+- Both days broken down by publisher and by offer. The publisher table shows how many campaigns each publisher ran: offers with at least 50 clicks from that publisher on that date (`MIN_CAMPAIGN_CLICKS`), from Affise stats split by date, offer and publisher and checked against the publisher totals
 - Last month (the full previous calendar month): totals, plus breakdowns by publisher (with campaigns run that month) and by offer
 - Offer tables list only offers with conversions (in the two-day table, on either day); totals still include every offer
 - Month to date up to yesterday: income, profit, a run-rate forecast and a daily income trend
