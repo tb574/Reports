@@ -6,7 +6,7 @@ Builds a daily report of CPS revenue for management from the Affise Admin API
 ## What it shows
 - Yesterday vs 2 days ago, side by side: income, payout, profit, margin, conversions (approved and pending), clicks, CR and EPC, with the % change
 - Both days broken down by publisher and by offer. The publisher table shows how many campaigns each publisher ran: offers with at least 50 clicks from that publisher on that date (`MIN_CAMPAIGN_CLICKS`), from Affise stats split by date, offer and publisher and checked against the publisher totals
-- Income by network (digidip, Impact, FlexOffers, ...): yesterday, 2 days ago, month to date and last month. The network comes from the prefix of each offer's Affise external offer ID (`dd_`, `imp_ny_`, `fx_`, ...); the mapping is `NETWORKS` in `daily_report.py`
+- Income by network (digidip, Impact, FlexOffers, ...): yesterday, 2 days ago, month to date and last month, for networks that made money yesterday or 2 days ago (the total still covers all networks). The network comes from the prefix of each offer's Affise external offer ID (`dd_`, `imp_ny_`, `fx_`, ...); the mapping is `NETWORKS` in `daily_report.py`
 - Last month (the full previous calendar month): totals, a breakdown by publisher (with campaigns run that month) and the top 10 offers by income
 - Offer tables list only offers with conversions (in the two-day table, on either day); totals still include every offer
 - Month to date up to yesterday: income, profit, a run-rate forecast and a daily income trend

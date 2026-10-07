@@ -341,14 +341,17 @@ def period_table(title, first_col, rows, campaigns=None, converted_only=False):
 
 
 def network_table(title, day, data, lm_name):
-    """Income per network: yesterday, 2 days ago, month to date and last month."""
+    """Income per network: yesterday, 2 days ago, month to date and last month.
+
+    Networks with no income yesterday and 2 days ago are left out; the total still includes them.
+    """
     cols = ["day_by_offer", "prev_by_offer", "mtd_by_offer", "lastmonth_by_offer"]
     nets = {}
     for i, key in enumerate(cols):
         for r in data[key]:
             nets.setdefault(r["network"] or "Unknown", [0.0] * len(cols))[i] += r["income"]
     out = [[html.escape(n), money(v[0]), money(v[1]), delta(v[0], v[1]), money(v[2]), money(v[3])]
-           for n, v in sorted(nets.items(), key=lambda kv: (kv[1][2], kv[1][3]), reverse=True) if any(v)]
+           for n, v in sorted(nets.items(), key=lambda kv: (kv[1][0], kv[1][1]), reverse=True) if v[0] or v[1]]
     if out:
         t = [sum(r["income"] for r in data[k]) for k in cols]
         out.append(["Total", money(t[0]), money(t[1]), delta(t[0], t[1]), money(t[2]), money(t[3])])
