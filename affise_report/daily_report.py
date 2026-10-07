@@ -39,9 +39,10 @@ def affise_get(path, params):
 
 
 def fetch_stats(slice_by, date_from, date_to):
-    """GET /3.0/stats/custom sliced by one dimension, all pages."""
+    """GET /3.0/stats/custom sliced by one dimension (or a list of them), all pages."""
     # A bare "day" slice only returns the day of the month, so add year and month to get a full date.
-    slices = ["year", "month", "day"] if slice_by == "day" else [slice_by]
+    slices = ["year", "month", "day"] if slice_by == "day" else (
+        list(slice_by) if isinstance(slice_by, (list, tuple)) else [slice_by])
     # No currency filter: unfiltered, Affise converts every conversion into the account currency (USD).
     # Filtering by currency drops clicks and every conversion in other currencies (e.g. EUR offers).
     rows, page = [], 1
@@ -136,7 +137,20 @@ def collect(day):
         "mtd_by_day": (month_start, day, "day"),
     }.items():
         data[key] = [normalise(r, slice_by) for r in fetch_stats(slice_by, a, b)]
+    for key, (a, b) in {"day_campaigns": (day, day), "prev_campaigns": (prev, prev),
+                        "lastmonth_campaigns": (lm_start, lm_end)}.items():
+        data[key] = count_campaigns(fetch_stats(["affiliate", "offer"], a, b))
     return data
+
+
+def count_campaigns(rows):
+    """Campaigns per publisher: the offers that publisher sent at least one click to."""
+    counts = {}
+    for r in rows:
+        pub, offer = normalise(r, "affiliate"), normalise(r, "offer")
+        if offer["clicks"] > 0:
+            counts.setdefault(pub["label"], set()).add(offer["label"])
+    return {pub: len(offers) for pub, offers in counts.items()}
 
 
 # -------------------------------------------------------------------------- demo
@@ -168,6 +182,9 @@ def demo_data(day):
         "lastmonth_by_affiliate": [mk(*p, scale=29.4) for p in pubs],
         "lastmonth_by_offer": [mk(*o, scale=30.2) for o in offers],
         "mtd_by_day": mtd,
+        "day_campaigns": {p[0]: 4 for p in pubs},
+        "prev_campaigns": {p[0]: 3 for p in pubs},
+        "lastmonth_campaigns": {p[0]: 9 for p in pubs},
     }
 
 
@@ -219,38 +236,56 @@ def two_day_summary(day, t, p):
                 [[name, fmt(t[k]), fmt(p[k]), delta(t[k], p[k])] for name, k, fmt in metrics])
 
 
-def breakdown(title, first_col, cur, prev):
-    """One row per publisher/offer with both days side by side."""
+def breakdown(title, first_col, cur, prev, campaigns=None, converted_only=False):
+    """One row per publisher/offer with both days side by side.
+
+    campaigns: (yesterday, 2 days ago) dicts of campaign counts per publisher, shown as extra columns.
+    converted_only: hide rows with no conversions on either day (totals still include them).
+    """
     keys = {r["label"] for r in cur} | {r["label"] for r in prev}
     c = {r["label"]: r for r in cur}
     p = {r["label"]: r for r in prev}
     empty = {"clicks": 0, "conversions": 0, "income": 0.0, "profit": 0.0}
+    camp = lambda i, k: [f'{campaigns[0].get(k, 0):,}', f'{campaigns[1].get(k, 0):,}'] if campaigns else []
     rows = []
     for k in sorted(keys, key=lambda k: (c.get(k, empty)["income"], p.get(k, empty)["income"]), reverse=True):
         a, b = c.get(k, empty), p.get(k, empty)
-        rows.append([html.escape(k), f'{a["conversions"]:,}', f'{b["conversions"]:,}',
+        if converted_only and not (a["conversions"] or b["conversions"]):
+            continue
+        rows.append([html.escape(k)] + camp(0, k) + [f'{a["conversions"]:,}', f'{b["conversions"]:,}',
                      money(a["income"]), money(b["income"]), delta(a["income"], b["income"]), money(a["profit"])])
     if rows:
         a, b = summarise(cur), summarise(prev)
-        rows.append(["Total", f'{a["conversions"]:,}', f'{b["conversions"]:,}', money(a["income"]),
+        tc = [f'{sum(campaigns[0].values()):,}', f'{sum(campaigns[1].values()):,}'] if campaigns else []
+        rows.append(["Total"] + tc + [f'{a["conversions"]:,}', f'{b["conversions"]:,}', money(a["income"]),
                      money(b["income"]), delta(a["income"], b["income"]), money(a["profit"])])
-    head = [first_col, "Conv. yesterday", "Conv. 2 days ago", "Income yesterday", "Income 2 days ago",
-            "Change", "Profit yesterday"]
+    head = [first_col] + (["Campaigns yesterday", "Campaigns 2 days ago"] if campaigns else []) + [
+        "Conv. yesterday", "Conv. 2 days ago", "Income yesterday", "Income 2 days ago", "Change", "Profit yesterday"]
     return grid(title, head, rows, bold_last=bool(rows))
 
 
-def period_table(title, first_col, rows):
-    """One period: one row per publisher/offer, sorted by income, with a total row."""
+def period_table(title, first_col, rows, campaigns=None, converted_only=False):
+    """One period: one row per publisher/offer, sorted by income, with a total row.
+
+    campaigns: dict of campaign counts per publisher, shown as an extra column.
+    converted_only: hide rows with no conversions (the total still includes them).
+    """
+    camp = lambda k: [f'{campaigns.get(k, 0):,}'] if campaigns is not None else []
     out = []
     for r in sorted(rows, key=lambda r: r["income"], reverse=True):
+        if converted_only and not r["conversions"]:
+            continue
         cr = r["conversions"] / r["clicks"] * 100 if r["clicks"] else 0
-        out.append([html.escape(r["label"]), f'{r["clicks"]:,}', f'{r["conversions"]:,}', f"{cr:.2f}%",
-                    money(r["income"]), money(r["payout"]), money(r["profit"])])
+        out.append([html.escape(r["label"])] + camp(r["label"]) + [f'{r["clicks"]:,}', f'{r["conversions"]:,}',
+                    f"{cr:.2f}%", money(r["income"]), money(r["payout"]), money(r["profit"])])
     if out:
         t = summarise(rows)
-        out.append(["Total", f'{t["clicks"]:,}', f'{t["conversions"]:,}', f'{t["cr"]:.2f}%',
+        tc = [f'{sum(campaigns.values()):,}'] if campaigns is not None else []
+        out.append(["Total"] + tc + [f'{t["clicks"]:,}', f'{t["conversions"]:,}', f'{t["cr"]:.2f}%',
                     money(t["income"]), money(t["payout"]), money(t["profit"])])
-    return grid(title, [first_col, "Clicks", "Conv.", "CR", "Income", "Payout", "Profit"], out, bold_last=bool(out))
+    head = [first_col] + (["Campaigns"] if campaigns is not None else []) + [
+        "Clicks", "Conv.", "CR", "Income", "Payout", "Profit"]
+    return grid(title, head, out, bold_last=bool(out))
 
 
 def kpi(label, value, sub=""):
@@ -297,8 +332,10 @@ def render_html(day, data, demo=False):
 {kpi("MTD conversions", f'{m["conversions"]:,}', f'{m["declined"]} declined')}
 </tr></table>
 {two_day_summary(day, t, p)}
-{breakdown("By publisher", "Publisher", data["day_by_affiliate"], data["prev_by_affiliate"])}
-{breakdown("By offer", "Offer", data["day_by_offer"], data["prev_by_offer"])}
+{breakdown("By publisher", "Publisher", data["day_by_affiliate"], data["prev_by_affiliate"],
+           campaigns=(data["day_campaigns"], data["prev_campaigns"]))}
+{breakdown("By offer (offers with conversions)", "Offer", data["day_by_offer"], data["prev_by_offer"],
+           converted_only=True)}
 <h2 style="font-size:18px;margin:36px 0 4px;padding-top:16px;border-top:1px solid #e5e7eb">Last month — {lm_name}</h2>
 <table style="width:100%;border-spacing:8px;margin:0 -8px"><tr>
 {kpi("Income", money(lm["income"]), f'{lm["approved"]:,} approved · {lm["pending"]:,} pending')}
@@ -306,12 +343,15 @@ def render_html(day, data, demo=False):
 {kpi("Profit", money(lm["profit"]), f'{lm["margin"]:.1f}% margin')}
 {kpi("Conversions", f'{lm["conversions"]:,}', f'{lm["clicks"]:,} clicks · CR {lm["cr"]:.2f}%')}
 </tr></table>
-{period_table(f"{lm_name} by publisher", "Publisher", data["lastmonth_by_affiliate"])}
-{period_table(f"{lm_name} by offer", "Offer", data["lastmonth_by_offer"])}
+{period_table(f"{lm_name} by publisher", "Publisher", data["lastmonth_by_affiliate"],
+              campaigns=data["lastmonth_campaigns"])}
+{period_table(f"{lm_name} by offer (offers with conversions)", "Offer", data["lastmonth_by_offer"],
+              converted_only=True)}
 <h2 style="font-size:16px;margin:28px 0 8px">Month-to-date daily income</h2>
 <table style="width:100%;border-collapse:collapse">{trend}</table>
 <p style="font-size:11px;color:#9ca3af;margin-top:28px">Income = amount networks pay us (Affise "charge"). Payout = publisher share
-(Affise "revenue"). Profit = Income − Payout. Includes pending conversions, which may still be declined by the network.</p>
+(Affise "revenue"). Profit = Income − Payout. Includes pending conversions, which may still be declined by the network.
+Campaigns = offers a publisher sent at least one click to that day (or month). Offer tables list only offers with conversions; totals include all offers.</p>
 </body></html>"""
 
 
